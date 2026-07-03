@@ -1,0 +1,62 @@
+[package]
+name = "hypso"
+version = "0.1.0"
+edition = "2024"
+description = "Native generator for 4K topographic-style wallpapers (fractal contour maps)."
+authors = ["Marcos Lima <marckfree@gmail.com>"]
+license = "MIT"
+repository = "https://github.com/skvggor/hypso"
+readme = "README.md"
+
+[lib]
+name = "hypso"
+path = "src/lib.rs"
+
+[[bin]]
+name = "hypso"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = "1.0.102"
+dirs = "6.0.0"
+fastrand = "2.4.1"
+open = "5.3.6"
+resvg = "0.47.0"
+serde = { version = "1.0.228", features = ["derive"] }
+slint = { version = "1.16.1", features = ["renderer-software"] }
+toml = "1.1.2"
+
+[build-dependencies]
+slint-build = "1.16.1"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true
+
+# Keep dev/CI builds fast by optimizing only the SVG → raster hot path, so the
+# live preview stays smooth without optimizing all dependencies.
+[profile.dev.package.usvg]
+opt-level = 3
+[profile.dev.package.resvg]
+opt-level = 3
+[profile.dev.package.tiny-skia]
+opt-level = 3
+[profile.dev.package.tiny-skia-path]
+opt-level = 3
+[profile.dev.package.rustybuzz]
+opt-level = 3
+[profile.dev.package.ttf-parser]
+opt-level = 3
+[profile.dev.package.fontdb]
+opt-level = 3
+[profile.dev.package.png]
+opt-level = 3
+[profile.dev.package.fdeflate]
+opt-level = 3
+
+[dev-dependencies]
+
+[target."cfg(windows)".build-dependencies]
+winresource = "0.1.31"

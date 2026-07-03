@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Hypso
+Comment=Generate 4K topographic-style wallpapers
+Exec=hypso
+Icon=hypso
+Categories=Graphics;
+Terminal=false

@@ -1,0 +1,1352 @@
+// Flat, square-cornered widget set: the std-widgets carry built-in rounded
+// corners, so every control here is custom.
+
+export struct RgbValue {
+    red: float,
+    green: float,
+    blue: float,
+    valid: bool,
+}
+
+// Color text conversions are implemented in Rust (hypso::util).
+export global ColorCodec {
+    pure callback parse(string) -> RgbValue;
+    pure callback format-hex(float, float, float) -> string;
+    pure callback format-rgb(float, float, float) -> string;
+}
+
+global Theme {
+    out property <color> window: #0f1216;
+    out property <color> panel: #171b20;
+    out property <color> inset: #11151a;
+    out property <color> border: #2a313a;
+    out property <color> text: #d7dee4;
+    out property <color> muted: #75808a;
+    out property <color> accent: #6fb6c8;
+    out property <color> accent-text: #0f1216;
+}
+
+component FieldLabel inherits Text {
+    color: Theme.muted;
+    font-size: 11px;
+}
+
+// A small (i) badge that reveals an explanation on hover or keyboard focus.
+component InfoTip {
+    in property <string> text;
+    width: 15px;
+    height: 15px;
+
+    accessible-role: button;
+    accessible-label: root.text;
+
+    Rectangle {
+        background: tip-touch.has-hover || tip-focus.has-focus ? Theme.border : Theme.inset;
+        border-width: 1px;
+        border-color: tip-focus.has-focus ? Theme.accent : Theme.muted;
+        animate background, border-color { duration: 100ms; }
+        Text {
+            text: "i";
+            color: tip-touch.has-hover || tip-focus.has-focus ? Theme.text : Theme.muted;
+            font-size: 10px;
+            font-weight: 700;
+            font-italic: true;
+        }
+        tip-focus := FocusScope {
+            width: 100%;
+            height: 100%;
+            changed has-focus => {
+                if (self.has-focus) {
+                    tip.show();
+                } else {
+                    tip.close();
+                }
+            }
+            key-pressed(event) => {
+                if (event.text == Key.Escape) {
+                    tip.close();
+                    return accept;
+                }
+                reject
+            }
+        }
+        tip-touch := TouchArea {
+            mouse-cursor: help;
+            changed has-hover => {
+                if (self.has-hover) {
+                    tip.show();
+                } else {
+                    tip.close();
+                }
+            }
+        }
+    }
+
+    tip := PopupWindow {
+        close-policy: PopupClosePolicy.no-auto-close;
+        x: -6px;
+        y: root.height + 6px;
+        width: 270px;
+        Rectangle {
+            background: #1d232a;
+            border-width: 1px;
+            border-color: Theme.border;
+            height: tip-body.preferred-height;
+            tip-body := VerticalLayout {
+                padding: 10px;
+                Text {
+                    text: root.text;
+                    color: Theme.text;
+                    font-size: 11px;
+                    wrap: word-wrap;
+                }
+            }
+        }
+    }
+}
+
+component FlatButton {
+    in property <string> text;
+    in property <bool> primary: false;
+    in property <bool> enabled: true;
+    callback clicked();
+    min-height: 32px;
+    horizontal-stretch: 1;
+
+    accessible-role: button;
+    accessible-label: root.text;
+    accessible-enabled: root.enabled;
+    accessible-action-default => { root.clicked(); }
+
+    button-focus := FocusScope {
+        width: 100%;
+        height: 100%;
+        enabled: root.enabled;
+        key-pressed(event) => {
+            if (event.text == Key.Return || event.text == " ") {
+                root.clicked();
+                return accept;
+            }
+            reject
+        }
+
+        Rectangle {
+            background: !root.enabled ? Theme.inset
+                : touch.pressed ? (root.primary ? Theme.accent.darker(30%) : Theme.border)
+                : touch.has-hover ? (root.primary ? Theme.accent.brighter(10%) : Theme.inset.brighter(40%))
+                : (root.primary ? Theme.accent : Theme.inset);
+            border-width: 1px;
+            border-color: button-focus.has-focus ? Theme.text
+                : root.primary ? Theme.accent
+                : touch.has-hover && root.enabled ? Theme.muted : Theme.border;
+            animate background, border-color { duration: 100ms; easing: ease-out; }
+            Text {
+                text: root.text;
+                color: root.primary ? Theme.accent-text : Theme.text;
+                font-size: 12px;
+                font-weight: 700;
+            }
+            touch := TouchArea {
+                enabled: root.enabled;
+                mouse-cursor: pointer;
+                clicked => {
+                    button-focus.focus();
+                    root.clicked();
+                }
+            }
+        }
+    }
+}
+
+component FlatSlider {
+    in property <float> minimum: 0;
+    in property <float> maximum: 1;
+    in property <float> step: (root.maximum - root.minimum) / 20;
+    in property <string> a11y-label;
+    in-out property <float> value;
+    callback changed();
+    min-height: 18px;
+    min-width: 50px;
+    horizontal-stretch: 1;
+
+    accessible-role: slider;
+    accessible-label: root.a11y-label;
+    accessible-value: "\{Math.round(root.value * 100) / 100}";
+    accessible-value-minimum: root.minimum;
+    accessible-value-maximum: root.maximum;
+    accessible-value-step: root.step;
+    accessible-action-increment => { root.adjust(root.step); }
+    accessible-action-decrement => { root.adjust(-root.step); }
+
+    property <float> ratio: (root.value - root.minimum) / max(root.maximum - root.minimum, 0.0001);
+
+    function adjust(delta: float) {
+        root.value = min(root.maximum, max(root.minimum, root.value + delta));
+        root.changed();
+    }
+
+    function set-from-position(position: length) {
+        root.value = root.minimum + (root.maximum - root.minimum)
+            * min(1.0, max(0.0, (position - 5px) / (root.width - 10px)));
+        root.changed();
+    }
+
+    slider-focus := FocusScope {
+        width: 100%;
+        height: 100%;
+        key-pressed(event) => {
+            if (event.text == Key.LeftArrow || event.text == Key.DownArrow) {
+                root.adjust(-root.step);
+                return accept;
+            }
+            if (event.text == Key.RightArrow || event.text == Key.UpArrow) {
+                root.adjust(root.step);
+                return accept;
+            }
+            if (event.text == Key.Home) {
+                root.value = root.minimum;
+                root.changed();
+                return accept;
+            }
+            if (event.text == Key.End) {
+                root.value = root.maximum;
+                root.changed();
+                return accept;
+            }
+            reject
+        }
+
+        Rectangle {
+            y: parent.height / 2 - 1px;
+            height: 2px;
+            background: slider-focus.has-focus ? Theme.muted : Theme.border;
+        }
+        Rectangle {
+            x: 0;
+            y: parent.height / 2 - 1px;
+            width: parent.width * root.ratio;
+            height: 2px;
+            background: Theme.accent;
+        }
+        handle := Rectangle {
+            width: 10px;
+            height: touch.pressed || touch.has-hover || slider-focus.has-focus ? 17px : 14px;
+            x: (parent.width - self.width) * root.ratio;
+            y: (parent.height - self.height) / 2;
+            background: touch.pressed || slider-focus.has-focus ? Theme.accent
+                : touch.has-hover ? Theme.text : Theme.text.darker(20%);
+            animate background, height { duration: 90ms; easing: ease-out; }
+        }
+        touch := TouchArea {
+            mouse-cursor: pointer;
+            moved => {
+                if (self.pressed) {
+                    root.set-from-position(self.mouse-x);
+                }
+            }
+            pointer-event(event) => {
+                if (event.kind == PointerEventKind.down) {
+                    slider-focus.focus();
+                    root.set-from-position(self.mouse-x);
+                }
+            }
+        }
+    }
+}
+
+component LabeledSlider {
+    in property <string> label;
+    in property <float> minimum: 0;
+    in property <float> maximum: 1.0;
+    in property <bool> integer: false;
+    in property <bool> percent: false;
+    in-out property <float> value;
+    callback changed();
+    VerticalLayout {
+        spacing: 4px;
+        HorizontalLayout {
+            FieldLabel {
+                text: root.label;
+                horizontal-stretch: 1;
+            }
+            FieldLabel {
+                text: root.percent
+                    ? "\{Math.round((root.value - root.minimum) / max(root.maximum - root.minimum, 0.0001) * 100)}%"
+                    : root.integer
+                    ? "\{Math.round(root.value)}"
+                    : "\{Math.round(root.value * 100) / 100}";
+                color: Theme.text;
+            }
+        }
+        FlatSlider {
+            minimum: root.minimum;
+            maximum: root.maximum;
+            step: root.integer ? 1.0 : (root.maximum - root.minimum) / 20;
+            a11y-label: root.label;
+            value <=> root.value;
+            changed => { root.changed(); }
+        }
+    }
+}
+
+component FlatEdit {
+    in property <string> placeholder: "";
+    in property <string> a11y-label;
+    in-out property <string> text;
+    out property <bool> editing: input.has-focus;
+    callback edited();
+    callback accepted();
+    min-height: 30px;
+    horizontal-stretch: 1;
+
+    accessible-role: text-input;
+    accessible-label: root.a11y-label;
+    accessible-value: root.text;
+
+    Rectangle {
+        background: Theme.inset;
+        border-width: 1px;
+        border-color: input.has-focus ? Theme.accent : Theme.border;
+        animate border-color { duration: 120ms; easing: ease-out; }
+        input := TextInput {
+            x: 9px;
+            width: parent.width - 18px;
+            text <=> root.text;
+            color: Theme.text;
+            font-size: 12px;
+            single-line: true;
+            vertical-alignment: center;
+            edited => { root.edited(); }
+            accepted => { root.accepted(); }
+            // Leaving the field commits the edit, same as pressing Enter.
+            changed has-focus => {
+                if (!self.has-focus) {
+                    root.accepted();
+                }
+            }
+        }
+        if root.text == "" && !input.has-focus: Text {
+            x: 9px;
+            text: root.placeholder;
+            color: Theme.muted;
+            font-size: 12px;
+            vertical-alignment: center;
+            height: parent.height;
+        }
+    }
+}
+
+component LabeledEdit {
+    in property <string> label;
+    in property <string> placeholder: "";
+    in property <string> info: "";
+    in-out property <string> value;
+    callback edited();
+    VerticalLayout {
+        spacing: 4px;
+        HorizontalLayout {
+            spacing: 6px;
+            alignment: start;
+            FieldLabel {
+                text: root.label;
+                vertical-alignment: center;
+            }
+            if root.info != "": InfoTip { text: root.info; }
+        }
+        FlatEdit {
+            text <=> root.value;
+            placeholder: root.placeholder;
+            a11y-label: root.label;
+            edited => { root.edited(); }
+        }
+    }
+}
+
+component FlatCheck {
+    in property <string> text;
+    in-out property <bool> checked;
+    callback toggled();
+    min-height: 22px;
+
+    accessible-role: checkbox;
+    accessible-label: root.text;
+    accessible-checked: root.checked;
+    accessible-action-default => { root.toggle(); }
+
+    function toggle() {
+        root.checked = !root.checked;
+        root.toggled();
+    }
+
+    check-focus := FocusScope {
+        width: 100%;
+        height: 100%;
+        key-pressed(event) => {
+            if (event.text == Key.Return || event.text == " ") {
+                root.toggle();
+                return accept;
+            }
+            reject
+        }
+
+        HorizontalLayout {
+            spacing: 8px;
+            alignment: start;
+            Rectangle {
+                width: 15px;
+                height: 15px;
+                y: (parent.height - self.height) / 2;
+                background: Theme.inset;
+                border-width: 1px;
+                border-color: root.checked ? Theme.accent
+                    : check-focus.has-focus || check-touch.has-hover ? Theme.muted : Theme.border;
+                animate border-color { duration: 100ms; easing: ease-out; }
+                Rectangle {
+                    width: root.checked ? 7px : 0px;
+                    height: self.width;
+                    background: Theme.accent;
+                    animate width { duration: 110ms; easing: ease-out; }
+                }
+            }
+            Text {
+                text: root.text;
+                color: check-focus.has-focus ? Theme.accent : Theme.text;
+                font-size: 12px;
+                vertical-alignment: center;
+            }
+        }
+        check-touch := TouchArea {
+            mouse-cursor: pointer;
+            clicked => {
+                check-focus.focus();
+                root.toggle();
+            }
+        }
+    }
+}
+
+component FlatCombo {
+    in property <[string]> options;
+    in property <string> a11y-label;
+    in-out property <int> index;
+    callback selected();
+    min-height: 30px;
+    horizontal-stretch: 1;
+
+    accessible-role: combobox;
+    accessible-label: root.a11y-label;
+    accessible-value: root.options[root.index];
+    accessible-action-expand => { popup.show(); }
+
+    function select(new-index: int) {
+        root.index = min(root.options.length - 1, max(0, new-index));
+        root.selected();
+    }
+
+    combo-focus := FocusScope {
+        width: 100%;
+        height: 100%;
+        key-pressed(event) => {
+            if (event.text == Key.UpArrow) {
+                root.select(root.index - 1);
+                return accept;
+            }
+            if (event.text == Key.DownArrow) {
+                root.select(root.index + 1);
+                return accept;
+            }
+            if (event.text == Key.Return || event.text == " ") {
+                popup.show();
+                return accept;
+            }
+            reject
+        }
+
+        Rectangle {
+            background: Theme.inset;
+            border-width: 1px;
+            border-color: combo-focus.has-focus || touch.has-hover ? Theme.accent : Theme.border;
+            animate border-color { duration: 100ms; easing: ease-out; }
+            HorizontalLayout {
+                padding-left: 9px;
+                padding-right: 9px;
+                Text {
+                    text: root.options[root.index];
+                    color: Theme.text;
+                    font-size: 12px;
+                    vertical-alignment: center;
+                    horizontal-stretch: 1;
+                    overflow: elide;
+                }
+                Text {
+                    text: "▾";
+                    color: Theme.muted;
+                    font-size: 11px;
+                    vertical-alignment: center;
+                }
+            }
+            touch := TouchArea {
+                mouse-cursor: pointer;
+                clicked => {
+                    combo-focus.focus();
+                    popup.show();
+                }
+            }
+        }
+    }
+
+    popup := PopupWindow {
+        x: 0;
+        y: root.height;
+        width: root.width;
+        Rectangle {
+            background: Theme.inset;
+            border-width: 1px;
+            border-color: Theme.border;
+            VerticalLayout {
+                for option[option-index] in root.options: Rectangle {
+                    height: 28px;
+                    background: item-touch.has-hover ? Theme.border : transparent;
+                    animate background { duration: 80ms; }
+                    Text {
+                        x: 9px;
+                        text: option;
+                        color: option-index == root.index ? Theme.accent : Theme.text;
+                        font-size: 12px;
+                        vertical-alignment: center;
+                        height: parent.height;
+                    }
+                    item-touch := TouchArea {
+                        clicked => {
+                            root.index = option-index;
+                            root.selected();
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+component LabeledCombo {
+    in property <string> label;
+    in property <[string]> options;
+    in-out property <int> index;
+    callback selected();
+    VerticalLayout {
+        spacing: 4px;
+        FieldLabel { text: root.label; }
+        FlatCombo {
+            options: root.options;
+            a11y-label: root.label;
+            index <=> root.index;
+            selected => { root.selected(); }
+        }
+    }
+}
+
+// Collapsible group: a clickable header and a clipped, animated body.
+component Section {
+    in property <string> title;
+    in-out property <bool> open: true;
+
+    VerticalLayout {
+        header := Rectangle {
+            height: 32px;
+            background: header-touch.has-hover ? Theme.inset.brighter(40%) : Theme.inset;
+            border-width: 1px;
+            border-color: header-focus.has-focus || header-touch.has-hover ? Theme.muted : Theme.border;
+            animate background, border-color { duration: 100ms; easing: ease-out; }
+
+            accessible-role: button;
+            accessible-label: "\{root.title} section";
+            accessible-expandable: true;
+            accessible-expanded: root.open;
+            accessible-action-default => { root.open = !root.open; }
+
+            header-focus := FocusScope {
+                width: 100%;
+                height: 100%;
+                key-pressed(event) => {
+                    if (event.text == Key.Return || event.text == " ") {
+                        root.open = !root.open;
+                        return accept;
+                    }
+                    reject
+                }
+
+                HorizontalLayout {
+                    padding-left: 11px;
+                    padding-right: 11px;
+                    Text {
+                        text: root.title;
+                        color: root.open ? Theme.accent : Theme.text;
+                        font-size: 11px;
+                        font-weight: 800;
+                        letter-spacing: 1.2px;
+                        vertical-alignment: center;
+                        horizontal-stretch: 1;
+                        animate color { duration: 120ms; }
+                    }
+                    Text {
+                        text: root.open ? "−" : "+";
+                        color: Theme.muted;
+                        font-size: 14px;
+                        vertical-alignment: center;
+                    }
+                }
+                header-touch := TouchArea {
+                    mouse-cursor: pointer;
+                    clicked => {
+                        header-focus.focus();
+                        root.open = !root.open;
+                    }
+                }
+            }
+        }
+        Rectangle {
+            clip: true;
+            height: root.open ? body.preferred-height : 0;
+            animate height { duration: 120ms; easing: ease-out; }
+            body := VerticalLayout {
+                padding: 12px;
+                padding-bottom: 16px;
+                spacing: 10px;
+                @children
+            }
+        }
+    }
+}
+
+// Swatch + labeled R/G/B sliders + a text field accepting hex or "r, g, b".
+component ColorField {
+    in property <string> label;
+    in-out property <float> red;
+    in-out property <float> green;
+    in-out property <float> blue;
+    callback changed();
+
+    property <bool> hex-mode: true;
+    property <string> formatted: root.hex-mode
+        ? ColorCodec.format-hex(root.red, root.green, root.blue)
+        : ColorCodec.format-rgb(root.red, root.green, root.blue);
+    property <RgbValue> parsed;
+
+    function apply-text() {
+        root.parsed = ColorCodec.parse(edit.text);
+        if (root.parsed.valid) {
+            root.red = root.parsed.red;
+            root.green = root.parsed.green;
+            root.blue = root.parsed.blue;
+            root.changed();
+        }
+        edit.text = root.formatted;
+    }
+
+    // Keep the text field live while sliders move (unless the user is typing).
+    function sync-text() {
+        if (!edit.editing) {
+            edit.text = root.formatted;
+        }
+    }
+
+    function set-mode(hex: bool) {
+        root.hex-mode = hex;
+        edit.text = root.formatted;
+    }
+
+    changed red => { root.sync-text(); }
+    changed green => { root.sync-text(); }
+    changed blue => { root.sync-text(); }
+
+    VerticalLayout {
+        spacing: 6px;
+        FieldLabel { text: root.label; }
+        HorizontalLayout {
+            spacing: 10px;
+            Rectangle {
+                width: 44px;
+                border-width: 1px;
+                border-color: Theme.border;
+                background: rgb(root.red, root.green, root.blue);
+                animate background { duration: 120ms; }
+            }
+            VerticalLayout {
+                spacing: 2px;
+                HorizontalLayout {
+                    spacing: 7px;
+                    Text {
+                        text: "R";
+                        color: Theme.muted;
+                        font-size: 10px;
+                        width: 10px;
+                        vertical-alignment: center;
+                    }
+                    FlatSlider {
+                        minimum: 0;
+                        maximum: 255;
+                        step: 5;
+                        a11y-label: "\{root.label} R";
+                        value <=> root.red;
+                        changed => {
+                            root.sync-text();
+                            root.changed();
+                        }
+                    }
+                    Text {
+                        text: Math.round(root.red);
+                        color: Theme.text;
+                        font-size: 10px;
+                        width: 24px;
+                        horizontal-alignment: right;
+                        vertical-alignment: center;
+                    }
+                }
+                HorizontalLayout {
+                    spacing: 7px;
+                    Text {
+                        text: "G";
+                        color: Theme.muted;
+                        font-size: 10px;
+                        width: 10px;
+                        vertical-alignment: center;
+                    }
+                    FlatSlider {
+                        minimum: 0;
+                        maximum: 255;
+                        step: 5;
+                        a11y-label: "\{root.label} G";
+                        value <=> root.green;
+                        changed => {
+                            root.sync-text();
+                            root.changed();
+                        }
+                    }
+                    Text {
+                        text: Math.round(root.green);
+                        color: Theme.text;
+                        font-size: 10px;
+                        width: 24px;
+                        horizontal-alignment: right;
+                        vertical-alignment: center;
+                    }
+                }
+                HorizontalLayout {
+                    spacing: 7px;
+                    Text {
+                        text: "B";
+                        color: Theme.muted;
+                        font-size: 10px;
+                        width: 10px;
+                        vertical-alignment: center;
+                    }
+                    FlatSlider {
+                        minimum: 0;
+                        maximum: 255;
+                        step: 5;
+                        a11y-label: "\{root.label} B";
+                        value <=> root.blue;
+                        changed => {
+                            root.sync-text();
+                            root.changed();
+                        }
+                    }
+                    Text {
+                        text: Math.round(root.blue);
+                        color: Theme.text;
+                        font-size: 10px;
+                        width: 24px;
+                        horizontal-alignment: right;
+                        vertical-alignment: center;
+                    }
+                }
+            }
+        }
+        HorizontalLayout {
+            spacing: 6px;
+            for mode[mode-index] in ["HEX", "RGB"]: Rectangle {
+                width: 40px;
+                height: 26px;
+                background: (root.hex-mode == (mode-index == 0)) ? Theme.border : Theme.inset;
+                border-width: 1px;
+                border-color: chip-focus.has-focus ? Theme.text
+                    : (root.hex-mode == (mode-index == 0)) ? Theme.accent : Theme.border;
+                animate background, border-color { duration: 100ms; easing: ease-out; }
+
+                accessible-role: button;
+                accessible-label: "\{root.label}: \{mode} input mode";
+                accessible-checked: root.hex-mode == (mode-index == 0);
+                accessible-action-default => { root.set-mode(mode-index == 0); }
+
+                chip-focus := FocusScope {
+                    width: 100%;
+                    height: 100%;
+                    key-pressed(event) => {
+                        if (event.text == Key.Return || event.text == " ") {
+                            root.set-mode(mode-index == 0);
+                            return accept;
+                        }
+                        reject
+                    }
+                    Text {
+                        text: mode;
+                        color: (root.hex-mode == (mode-index == 0)) ? Theme.accent : Theme.muted;
+                        font-size: 10px;
+                        font-weight: 700;
+                        animate color { duration: 100ms; }
+                    }
+                    TouchArea {
+                        mouse-cursor: pointer;
+                        clicked => {
+                            chip-focus.focus();
+                            root.set-mode(mode-index == 0);
+                        }
+                    }
+                }
+            }
+            edit := FlatEdit {
+                min-height: 26px;
+                a11y-label: "\{root.label} color value";
+                accepted => { root.apply-text(); }
+            }
+        }
+    }
+}
+
+export component AppWindow inherits Window {
+    title: "Hypso";
+    icon: @image-url("../assets/icons/icon-256.png");
+    preferred-width: 1180px;
+    preferred-height: 860px;
+    min-width: 1000px;
+    min-height: 680px;
+    background: Theme.window;
+
+    // Set from Rust.
+    in property <image> preview;
+    in property <string> status;
+    in property <bool> exporting;
+    in property <[string]> formats;
+    in property <[string]> presets;
+
+    // Read from Rust: the preview panel size, for pixel-exact rendering.
+    out property <length> preview-area-width: preview-area.width;
+    out property <length> preview-area-height: preview-area.height;
+
+    // Structural.
+    in-out property <string> seed-text;
+    in-out property <float> octaves-value;
+    in-out property <float> frequency-value;
+    in-out property <float> levels-value;
+    in-out property <int> format-index;
+
+    // Style.
+    in-out property <float> bg-red;
+    in-out property <float> bg-green;
+    in-out property <float> bg-blue;
+    in-out property <float> line-red;
+    in-out property <float> line-green;
+    in-out property <float> line-blue;
+    in-out property <bool> use-gradient;
+    in-out property <float> grad-start-red;
+    in-out property <float> grad-start-green;
+    in-out property <float> grad-start-blue;
+    in-out property <float> grad-end-red;
+    in-out property <float> grad-end-green;
+    in-out property <float> grad-end-blue;
+    in-out property <float> base-stroke-value;
+    in-out property <float> index-interval-value;
+    in-out property <float> smoothing-value;
+    in-out property <float> overlay-value;
+    in-out property <float> grain-value;
+
+    // Text zone.
+    in-out property <bool> use-text-zone;
+    in-out property <string> zone-text;
+    in-out property <float> text-red;
+    in-out property <float> text-green;
+    in-out property <float> text-blue;
+    in-out property <float> zone-x;
+    in-out property <float> zone-y;
+    in-out property <float> zone-w;
+    in-out property <float> zone-h;
+
+    // Presets.
+    in-out property <string> preset-name;
+    in-out property <int> preset-index;
+
+    // Export overlay state, driven from Rust.
+    in property <bool> export-overlay;
+    in property <bool> export-done;
+    in property <string> export-path;
+    in property <string> export-error;
+
+    callback changed();
+    callback export-png();
+    callback randomize();
+    callback save-preset();
+    callback load-preset();
+    callback open-export-path();
+    callback dismiss-export();
+
+    HorizontalLayout {
+        padding: 18px;
+        spacing: 18px;
+
+        // ---- Sidebar ----
+        Rectangle {
+            width: 392px;
+            background: Theme.panel;
+            border-width: 1px;
+            border-color: Theme.border;
+
+            VerticalLayout {
+                // Header.
+                Rectangle {
+                    height: 74px;
+                    HorizontalLayout {
+                        padding: 16px;
+                        spacing: 12px;
+                        Image {
+                            source: @image-url("../assets/icons/icon-256.png");
+                            width: 42px;
+                            height: 42px;
+                        }
+                        VerticalLayout {
+                            alignment: center;
+                            spacing: 2px;
+                            Text {
+                                text: "Hypso";
+                                color: Theme.text;
+                                font-size: 19px;
+                                font-weight: 800;
+                                letter-spacing: 0.5px;
+                            }
+                            Text {
+                                text: "topographic wallpaper generator";
+                                color: Theme.muted;
+                                font-size: 11px;
+                            }
+                        }
+                    }
+                }
+
+                Flickable {
+                    viewport-height: sections.preferred-height;
+                    sections := VerticalLayout {
+                        padding: 16px;
+                        padding-top: 4px;
+                        spacing: 10px;
+                        alignment: start;
+
+                        Section {
+                            title: "PATTERN";
+                            open: true;
+                            HorizontalLayout {
+                                spacing: 12px;
+                                LabeledEdit {
+                                    label: "Seed";
+                                    info: "The starting number for the pattern generator. The same seed with the same settings always recreates the exact same wallpaper — save it to reproduce a result. Use Randomize to try new ones.";
+                                    value <=> root.seed-text;
+                                    edited => { root.changed(); }
+                                }
+                                LabeledCombo {
+                                    label: "Format";
+                                    options: root.formats;
+                                    index <=> root.format-index;
+                                    selected => { root.changed(); }
+                                }
+                            }
+                            LabeledSlider {
+                                label: "Detail (octaves)";
+                                minimum: 1;
+                                maximum: 8;
+                                integer: true;
+                                value <=> root.octaves-value;
+                                changed => { root.changed(); }
+                            }
+                            LabeledSlider {
+                                label: "Zoom (frequency)";
+                                minimum: 0.5;
+                                maximum: 10;
+                                value <=> root.frequency-value;
+                                changed => { root.changed(); }
+                            }
+                            LabeledSlider {
+                                label: "Contour levels";
+                                minimum: 4;
+                                maximum: 60;
+                                integer: true;
+                                value <=> root.levels-value;
+                                changed => { root.changed(); }
+                            }
+                        }
+
+                        Section {
+                            title: "COLORS";
+                            open: true;
+                            ColorField {
+                                label: "Background";
+                                red <=> root.bg-red;
+                                green <=> root.bg-green;
+                                blue <=> root.bg-blue;
+                                changed => { root.changed(); }
+                            }
+                            FlatCheck {
+                                text: "Line gradient (start → end)";
+                                checked <=> root.use-gradient;
+                                toggled => { root.changed(); }
+                            }
+                            if !root.use-gradient: ColorField {
+                                label: "Lines";
+                                red <=> root.line-red;
+                                green <=> root.line-green;
+                                blue <=> root.line-blue;
+                                changed => { root.changed(); }
+                            }
+                            if root.use-gradient: VerticalLayout {
+                                spacing: 10px;
+                                ColorField {
+                                    label: "Gradient start";
+                                    red <=> root.grad-start-red;
+                                    green <=> root.grad-start-green;
+                                    blue <=> root.grad-start-blue;
+                                    changed => { root.changed(); }
+                                }
+                                ColorField {
+                                    label: "Gradient end";
+                                    red <=> root.grad-end-red;
+                                    green <=> root.grad-end-green;
+                                    blue <=> root.grad-end-blue;
+                                    changed => { root.changed(); }
+                                }
+                            }
+                        }
+
+                        Section {
+                            title: "LINES";
+                            open: false;
+                            LabeledSlider {
+                                label: "Stroke width";
+                                minimum: 0.3;
+                                maximum: 5;
+                                value <=> root.base-stroke-value;
+                                changed => { root.changed(); }
+                            }
+                            LabeledSlider {
+                                label: "Thick line every Nth contour";
+                                minimum: 1;
+                                maximum: 12;
+                                integer: true;
+                                value <=> root.index-interval-value;
+                                changed => { root.changed(); }
+                            }
+                            LabeledSlider {
+                                label: "Smoothing";
+                                minimum: 0;
+                                maximum: 6;
+                                integer: true;
+                                value <=> root.smoothing-value;
+                                changed => { root.changed(); }
+                            }
+                        }
+
+                        Section {
+                            title: "EFFECTS";
+                            open: false;
+                            LabeledSlider {
+                                label: "Gradient overlay";
+                                percent: true;
+                                value <=> root.overlay-value;
+                                changed => { root.changed(); }
+                            }
+                            LabeledSlider {
+                                label: "Film grain";
+                                percent: true;
+                                value <=> root.grain-value;
+                                changed => { root.changed(); }
+                            }
+                        }
+
+                        Section {
+                            title: "TEXT ZONE";
+                            open: false;
+                            FlatCheck {
+                                text: "Reserve a zone for text";
+                                checked <=> root.use-text-zone;
+                                toggled => { root.changed(); }
+                            }
+                            if root.use-text-zone: VerticalLayout {
+                                spacing: 10px;
+                                LabeledEdit {
+                                    label: "Text (Montserrat)";
+                                    placeholder: "your title";
+                                    value <=> root.zone-text;
+                                    edited => { root.changed(); }
+                                }
+                                ColorField {
+                                    label: "Text color";
+                                    red <=> root.text-red;
+                                    green <=> root.text-green;
+                                    blue <=> root.text-blue;
+                                    changed => { root.changed(); }
+                                }
+                                HorizontalLayout {
+                                    spacing: 12px;
+                                    LabeledSlider {
+                                        label: "X";
+                                        percent: true;
+                                        value <=> root.zone-x;
+                                        changed => { root.changed(); }
+                                    }
+                                    LabeledSlider {
+                                        label: "Y";
+                                        percent: true;
+                                        value <=> root.zone-y;
+                                        changed => { root.changed(); }
+                                    }
+                                }
+                                HorizontalLayout {
+                                    spacing: 12px;
+                                    LabeledSlider {
+                                        label: "Width";
+                                        percent: true;
+                                        value <=> root.zone-w;
+                                        changed => { root.changed(); }
+                                    }
+                                    LabeledSlider {
+                                        label: "Height";
+                                        percent: true;
+                                        value <=> root.zone-h;
+                                        changed => { root.changed(); }
+                                    }
+                                }
+                            }
+                        }
+
+                        Section {
+                            title: "PRESETS";
+                            open: false;
+                            HorizontalLayout {
+                                spacing: 12px;
+                                LabeledEdit {
+                                    label: "Save as";
+                                    placeholder: "preset name";
+                                    value <=> root.preset-name;
+                                }
+                                LabeledCombo {
+                                    label: "Saved";
+                                    options: root.presets;
+                                    index <=> root.preset-index;
+                                }
+                            }
+                            HorizontalLayout {
+                                spacing: 10px;
+                                FlatButton {
+                                    text: "Save";
+                                    clicked => { root.save-preset(); }
+                                }
+                                FlatButton {
+                                    text: "Load";
+                                    clicked => { root.load-preset(); }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Actions pinned below the scroll area.
+                Rectangle {
+                    background: Theme.inset;
+                    border-width: 1px;
+                    border-color: Theme.border;
+                    VerticalLayout {
+                        padding: 14px;
+                        spacing: 9px;
+                        HorizontalLayout {
+                            spacing: 10px;
+                            FlatButton {
+                                text: "Randomize";
+                                clicked => { root.randomize(); }
+                            }
+                            FlatButton {
+                                text: root.exporting ? "Exporting…" : "Export";
+                                primary: true;
+                                enabled: !root.exporting;
+                                clicked => { root.export-png(); }
+                            }
+                        }
+                        if root.status != "": Text {
+                            text: root.status;
+                            color: Theme.muted;
+                            font-size: 11px;
+                            wrap: word-wrap;
+                        }
+                    }
+                }
+            }
+        }
+
+        // ---- Preview ----
+        Rectangle {
+            background: Theme.panel;
+            border-width: 1px;
+            border-color: Theme.border;
+
+            preview-area := Rectangle {
+                x: 18px;
+                y: 18px;
+                width: parent.width - 36px;
+                height: parent.height - 36px;
+                changed width => { root.changed(); }
+                changed height => { root.changed(); }
+                Image {
+                    source: root.preview;
+                    image-fit: contain;
+                    width: parent.width;
+                    height: parent.height;
+                }
+            }
+        }
+    }
+
+    // ---- Export overlay (fullscreen) ----
+    if root.export-overlay: Rectangle {
+        width: parent.width;
+        height: parent.height;
+        background: #0f1216e0;
+
+        // Swallow clicks so the editor underneath stays untouched.
+        TouchArea { }
+
+        Rectangle {
+            width: max(320px, min(root.width - 48px, 560px));
+            height: card-content.preferred-height;
+            background: Theme.panel;
+            border-width: 1px;
+            border-color: Theme.border;
+
+            card-content := VerticalLayout {
+                padding: 28px;
+                spacing: 18px;
+
+                if !root.export-done: VerticalLayout {
+                    spacing: 18px;
+                    HorizontalLayout {
+                        alignment: center;
+                        spacing: 9px;
+                        for phase in [0.0, 1.0, 2.0]: Rectangle {
+                            width: 13px;
+                            height: 13px;
+                            background: Theme.accent;
+                            opacity: 0.2 + 0.8 * max(0.0,
+                                Math.sin(((animation-tick() / 1ms) * 0.3 - phase * 120) * 1deg));
+                        }
+                    }
+                    Text {
+                        text: "Exporting wallpaper…";
+                        color: Theme.text;
+                        font-size: 14px;
+                        font-weight: 700;
+                        horizontal-alignment: center;
+                    }
+                    Text {
+                        text: "Rendering at full resolution";
+                        color: Theme.muted;
+                        font-size: 11px;
+                        horizontal-alignment: center;
+                    }
+                }
+
+                if root.export-done && root.export-error == "": VerticalLayout {
+                    spacing: 14px;
+                    Text {
+                        text: "Wallpaper saved";
+                        color: Theme.accent;
+                        font-size: 16px;
+                        font-weight: 800;
+                        horizontal-alignment: center;
+                    }
+                    Rectangle {
+                        background: Theme.inset;
+                        border-width: 1px;
+                        border-color: link-focus.has-focus || link-touch.has-hover ? Theme.accent : Theme.border;
+                        animate border-color { duration: 100ms; easing: ease-out; }
+
+                        accessible-role: button;
+                        accessible-label: "Show \{root.export-path} in file manager";
+                        accessible-action-default => { root.open-export-path(); }
+
+                        link-focus := FocusScope {
+                            width: 100%;
+                            height: 100%;
+                            key-pressed(event) => {
+                                if (event.text == Key.Return || event.text == " ") {
+                                    root.open-export-path();
+                                    return accept;
+                                }
+                                reject
+                            }
+                            VerticalLayout {
+                                padding: 13px;
+                                spacing: 4px;
+                                Text {
+                                    text: root.export-path;
+                                    color: link-focus.has-focus || link-touch.has-hover
+                                        ? Theme.accent.brighter(20%) : Theme.accent;
+                                    font-size: 12px;
+                                    wrap: word-wrap;
+                                    horizontal-alignment: center;
+                                }
+                                Text {
+                                    text: "Click to show in file manager";
+                                    color: Theme.muted;
+                                    font-size: 10px;
+                                    horizontal-alignment: center;
+                                }
+                            }
+                            link-touch := TouchArea {
+                                mouse-cursor: pointer;
+                                clicked => { root.open-export-path(); }
+                            }
+                        }
+                    }
+                    HorizontalLayout {
+                        alignment: center;
+                        FlatButton {
+                            text: "Done";
+                            width: 130px;
+                            clicked => { root.dismiss-export(); }
+                        }
+                    }
+                }
+
+                if root.export-done && root.export-error != "": VerticalLayout {
+                    spacing: 14px;
+                    Text {
+                        text: "Export failed";
+                        color: #d68a8a;
+                        font-size: 16px;
+                        font-weight: 800;
+                        horizontal-alignment: center;
+                    }
+                    Text {
+                        text: root.export-error;
+                        color: Theme.text;
+                        font-size: 12px;
+                        wrap: word-wrap;
+                        horizontal-alignment: center;
+                    }
+                    HorizontalLayout {
+                        alignment: center;
+                        FlatButton {
+                            text: "Close";
+                            width: 130px;
+                            clicked => { root.dismiss-export(); }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
