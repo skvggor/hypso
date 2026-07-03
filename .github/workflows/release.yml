@@ -73,6 +73,15 @@ jobs:
         env:
           TAG: ${{ github.ref_name }}
 
+      # Version-independent names so the landing page can link to
+      # releases/latest/download/<name> and never break across versions.
+      - name: Stable-named copies
+        run: |
+          cp "dist/hypso-${TAG}-linux-x86_64.tar.gz" dist/hypso-linux-x86_64.tar.gz
+          cp "dist/hypso-${TAG}-x86_64.AppImage" dist/hypso-linux-x86_64.AppImage
+        env:
+          TAG: ${{ github.ref_name }}
+
       - name: Publish to release
         uses: softprops/action-gh-release@v2
         with:
@@ -103,6 +112,12 @@ jobs:
           Copy-Item README.md stage/
           Copy-Item LICENSE stage/
           Compress-Archive -Path stage/* -DestinationPath "dist/hypso-$env:VERSION-windows-x86_64.zip"
+        env:
+          VERSION: ${{ github.ref_name }}
+
+      - name: Stable-named copy
+        shell: pwsh
+        run: Copy-Item "dist/hypso-$env:VERSION-windows-x86_64.zip" "dist/hypso-windows-x86_64.zip"
         env:
           VERSION: ${{ github.ref_name }}
 

@@ -19,7 +19,9 @@ const STROKE_THIN = 1; // px, a normal contour
 const STROKE_INDEX = 2.5; // px, a thick index contour
 const RELIEF = 0.62; // how high the letters rise into the field
 const BG = '#0b0e12';
-const PARALLAX = 26;
+const PARALLAX = 44; // px of parallax travel — livelier than before
+const TILT_RANGE = 22; // degrees of device tilt mapped to full parallax
+const WORD_FADE_SECONDS = 3.8; // the wordmark's transparency resolves this slowly
 const DRIFT_SECONDS = 10;
 
 const root = document.documentElement;
@@ -34,7 +36,7 @@ const hasGsap = typeof window.gsap !== 'undefined';
 
 root.classList.add('js');
 
-const state = { lines: [], total: 0, reveal: 0, seed: 0, palette: null };
+const state = { lines: [], total: 0, reveal: 0, wordReveal: 0, seed: 0, palette: null };
 const pointer = { targetX: 0, targetY: 0, x: 0, y: 0 };
 const word = { ready: false, size: 0, x: 0, y: 0, mask: null, outline: null };
 const maskCanvas = document.createElement('canvas');
@@ -369,12 +371,14 @@ function drawWord() {
   }
 
   // 1) Knock the terrain out of the letters — the word occludes the lines behind.
-  ctx.globalAlpha = state.reveal;
+  //    Driven by wordReveal (its own slow ramp) so the text stays translucent —
+  //    the contours showing through — for a few seconds before settling opaque.
+  ctx.globalAlpha = state.wordReveal;
   ctx.fillStyle = BG;
   ctx.fill('evenodd');
 
   // 2) A clear outline in this generation's ink defines the word in front.
-  ctx.globalAlpha = 0.92 * state.reveal;
+  ctx.globalAlpha = 0.92 * state.wordReveal;
   ctx.strokeStyle = ink;
   ctx.lineWidth = STROKE_INDEX;
   ctx.stroke();
@@ -389,9 +393,9 @@ function draw() {
 }
 
 function frame() {
-  pointer.x += (pointer.targetX - pointer.x) * 0.08;
-  pointer.y += (pointer.targetY - pointer.y) * 0.08;
-  if (Math.abs(pointer.targetX - pointer.x) > 0.15 || Math.abs(pointer.targetY - pointer.y) > 0.15) {
+  pointer.x += (pointer.targetX - pointer.x) * 0.12;
+  pointer.y += (pointer.targetY - pointer.y) * 0.12;
+  if (Math.abs(pointer.targetX - pointer.x) > 0.1 || Math.abs(pointer.targetY - pointer.y) > 0.1) {
     dirty = true;
   }
   if (dirty) {
@@ -411,11 +415,28 @@ function cancelDrift() {
   driftCall = null;
 }
 
+/** Fade the wordmark's transparency out over a deliberate few seconds, on its own
+ *  clock so the letters stay translucent (contours showing through) before they
+ *  settle opaque. */
+function fadeWordIn() {
+  window.gsap.killTweensOf(state, 'wordReveal');
+  state.wordReveal = 0;
+  window.gsap.to(state, {
+    wordReveal: 1,
+    duration: WORD_FADE_SECONDS,
+    ease: 'power1.inOut',
+    onUpdate: markDirty,
+  });
+}
+
 /** Erase the current plot, then draw the next generation — new field, new ink. */
 function transitionTo(seed) {
   const timeline = window.gsap.timeline();
   timeline.to(state, { reveal: 0, duration: 0.55, ease: 'power2.in', onUpdate: markDirty });
-  timeline.add(() => newGeneration(seed));
+  timeline.add(() => {
+    newGeneration(seed);
+    fadeWordIn();
+  });
   timeline.to(state, { reveal: 1, duration: 1.9, ease: 'power2.out', onUpdate: markDirty });
   timeline.add(scheduleDrift);
 }
@@ -435,6 +456,51 @@ function bindPointer() {
     },
     { passive: true },
   );
+}
+
+// --- Device-orientation parallax (tilt), the lively input on mobile ---------
+
+let orientationBound = false;
+
+function handleOrientation(event) {
+  if (event.gamma == null && event.beta == null) return;
+  const tiltX = clamp((event.gamma || 0) / TILT_RANGE, -1, 1);
+  const tiltY = clamp(((event.beta || 45) - 45) / TILT_RANGE, -1, 1);
+  pointer.targetX = tiltX * PARALLAX;
+  pointer.targetY = tiltY * PARALLAX;
+}
+
+function enableOrientation() {
+  if (orientationBound || typeof window.DeviceOrientationEvent === 'undefined') return;
+  orientationBound = true;
+  window.addEventListener('deviceorientation', handleOrientation, { passive: true });
+}
+
+/** Grant/start the motion sensor. iOS gates it behind a user gesture; elsewhere
+ *  just start listening. Safe to call repeatedly. */
+function requestMotion() {
+  const Sensor = window.DeviceOrientationEvent;
+  if (!Sensor) return;
+  if (typeof Sensor.requestPermission === 'function') {
+    Sensor.requestPermission()
+      .then((permission) => {
+        if (permission === 'granted') enableOrientation();
+      })
+      .catch(() => {});
+  } else {
+    enableOrientation();
+  }
+}
+
+function bindMotion() {
+  const Sensor = window.DeviceOrientationEvent;
+  if (!Sensor) return;
+  if (typeof Sensor.requestPermission === 'function') {
+    // iOS: ask from the visitor's first interaction (a gesture is required).
+    window.addEventListener('pointerdown', requestMotion, { once: true });
+  } else {
+    enableOrientation();
+  }
 }
 
 function bindReseed() {
@@ -478,6 +544,7 @@ async function loadFont() {
   buildMask();
   buildWordOutline();
   replotCurrent(); // re-plot the current seed now that the letters can rise
+  fadeWordIn(); // the wordmark's transparency resolves over a few seconds
 }
 
 /** Static poster in place of the live sheet — no animation, no layout shift. */
@@ -521,6 +588,7 @@ async function start() {
 
   revealLegend();
   bindPointer();
+  bindMotion();
   bindReseed();
   requestAnimationFrame(frame);
 

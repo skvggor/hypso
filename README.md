@@ -50,9 +50,10 @@ Presets are stored as TOML in the platform config directory.
 The [live site](https://skvggor.github.io/hypso/) *is* the product: the same
 generative core, compiled to WebAssembly, runs in the visitor's browser. The
 wordmark is stamped into the elevation field so the map's own contour lines bend
-around and cling to the letters; every plot draws a new seed and ink. The page is
-fully self-contained (no CDN) and falls back to a static poster when motion or
-WebAssembly is unavailable.
+around and cling to the letters; every plot draws a new seed and ink. It links to
+the latest-release binaries for Linux and Windows, tilts with the device
+gyroscope on mobile, and is fully self-contained (no CDN) — falling back to a
+static poster when motion or WebAssembly is unavailable.
 
 Source lives in `web/`; the build is Rust end to end and deploys to GitHub Pages
 via `.github/workflows/deploy-site.yml`.

@@ -273,6 +273,42 @@ a {
   transform: translateX(4px);
 }
 
+/* ---- Downloads: marginalia, not a button grid ---- */
+.legend__downloads {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem 0.85rem;
+  margin-top: 1rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--rule);
+}
+.legend__downloads-label {
+  width: 100%;
+  color: var(--faint);
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.legend__download {
+  color: var(--text);
+  border-bottom: 1px solid var(--accent);
+  padding-bottom: 0.1rem;
+  transition: color 0.15s ease;
+}
+.legend__download:hover {
+  color: var(--accent);
+}
+.legend__download--minor {
+  color: var(--dim);
+  border-bottom-color: var(--rule);
+  font-size: 0.76rem;
+}
+.legend__format {
+  color: var(--faint);
+  font-size: 0.72em;
+}
+
 /* ---- Bottom-edge annotation ---- */
 .edge {
   position: fixed;
