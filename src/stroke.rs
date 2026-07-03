@@ -1,7 +1,7 @@
 //! Stroke width by contour level (index contours).
 //!
 //! Topographic maps draw every Nth contour thicker. Width is the only thing
-//! that varies with level — color is uniform and handled by the SVG layer.
+//! that varies with level; color is uniform and handled by the SVG layer.
 
 /// How much thicker an index contour is than a regular one.
 const INDEX_MULTIPLIER: f32 = 2.2;

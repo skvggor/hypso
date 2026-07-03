@@ -5,7 +5,7 @@ Guidance for AI agents working in this repository.
 ## What this is
 
 `hypso` is a native desktop app that generates 4K **topographic-style
-wallpapers** — fractal contour-map line art over a flat background, with reserved
+wallpapers**: fractal contour-map line art over a flat background, with reserved
 zones for typography. Rust + [Slint](https://slint.dev) for the GUI,
 [resvg](https://github.com/linebender/resvg) / tiny-skia for rasterization.
 Single binary named `hypso`. Sibling project of `acag`.
@@ -50,7 +50,7 @@ Montserrat (Regular/Bold/Black) is embedded via `include_bytes!`.
 Built strictly test-first (red → green → refactor). Determinism (same seed ⇒ same
 output) is a first-class tested property across `noise`, `grain`, `export`, and
 `preset`. Library line coverage ≥ 80% (currently ~95%). Do **not** snapshot whole
-SVG/PNG strings as regression tests — assert structural invariants. Visual quality
+SVG/PNG strings as regression tests; assert structural invariants. Visual quality
 is validated by `examples/gallery.rs` + human eye, outside TDD.
 
 ## Commands

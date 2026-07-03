@@ -1,4 +1,4 @@
-//! Assembles the whole wallpaper into a single SVG string — the source of truth
+//! Assembles the whole wallpaper into a single SVG string, the source of truth
 //! rasterized identically for preview and export.
 //!
 //! Pipeline: fractal field → iso-contours → Chaikin smoothing → text-zone

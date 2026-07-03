@@ -21,8 +21,10 @@ visible effect.
 The system SHALL apply film grain as a deterministic, seeded raster
 post-processing step over the rasterized image, with a user-controlled
 intensity. Grain SHALL be sampled per output pixel so it covers the whole
-composition uniformly — background, contour lines, and text alike — rather than
-only large flat areas.
+composition uniformly (background, contour lines, and text alike) rather than
+only large flat areas. Grain SHALL read as soft film texture, with bounded
+per-channel deviation and a distribution concentrated near zero, never as
+salt-and-pepper noise.
 
 #### Scenario: Zero intensity leaves pixels unchanged
 
@@ -43,6 +45,11 @@ only large flat areas.
 
 - **WHEN** grain is applied with non-zero intensity over dark, line-colored pixels
 - **THEN** those pixels change too, so grain reads across the whole image
+
+#### Scenario: Grain stays soft at full intensity
+
+- **WHEN** grain is applied at full intensity
+- **THEN** per-channel deviations stay within a soft bound and average well below it
 
 ### Requirement: Effects applied identically to preview and export
 

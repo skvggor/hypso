@@ -40,7 +40,7 @@ impl Format {
         self.dimensions().1
     }
 
-    /// Longest edge in pixels — the size passed to the rasterizer.
+    /// Longest edge in pixels, the size passed to the rasterizer.
     pub fn longest_edge(self) -> u32 {
         let (width, height) = self.dimensions();
         width.max(height)

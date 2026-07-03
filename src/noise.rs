@@ -1,7 +1,7 @@
 //! Deterministic multi-octave fractal (fBm) noise field.
 //!
 //! The field is fully determined by `seed` and [`NoiseParams`], so the same
-//! inputs always produce the same values — the property TDD leans on and that
+//! inputs always produce the same values, the property TDD leans on and that
 //! makes presets reproducible.
 
 /// A row-major scalar field; every value lies in `[0.0, 1.0]`.

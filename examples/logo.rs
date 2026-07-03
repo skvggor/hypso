@@ -1,5 +1,5 @@
 //! Generates the Hypso logo with the app's own engine: a radial "peak" field
-//! perturbed by fBm noise, contoured into concentric rings — a stylized
+//! perturbed by fBm noise, contoured into concentric rings: a stylized
 //! topographic summit. Writes `assets/icons/icon.svg` plus PNG renditions.
 //!
 //! Run with: `cargo run --example logo`, then rebuild the Windows icon with

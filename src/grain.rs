@@ -1,7 +1,7 @@
 //! Seeded film-grain post-processing over a rasterized image.
 //!
 //! Grain is sampled **per output pixel** so it sits uniformly over the whole
-//! composition — background, contour lines, and text alike. (Coarser virtual
+//! composition: background, contour lines, and text alike. (Coarser virtual
 //! cells left thin lines untouched.) It is deterministic: identical
 //! `(image, seed, intensity)` produce identical output.
 
@@ -23,7 +23,7 @@ fn hash_noise(gx: i64, gy: i64, seed: u64) -> f32 {
 }
 
 /// Signed grain value in `[-1, 1)`: two independent samples averaged, giving a
-/// triangular distribution — soft film grain instead of salt-and-pepper noise.
+/// triangular distribution (soft film grain instead of salt-and-pepper noise).
 fn grain_at(gx: i64, gy: i64, seed: u64) -> f32 {
     (hash_noise(gx, gy, seed) + hash_noise(gx, gy, seed ^ 0x6A09_E667_F3BC_C909)) * 0.5
 }
@@ -96,8 +96,8 @@ mod tests {
 
     #[test]
     fn grain_is_soft() {
-        // Full intensity must stay subtle: bounded peaks, gentle average — not
-        // salt-and-pepper.
+        // Full intensity must stay subtle: bounded peaks and a gentle average,
+        // not salt-and-pepper.
         let mut pixmap = gray_pixmap();
         apply(&mut pixmap, 11, 1.0);
         let deltas: Vec<f32> = pixmap

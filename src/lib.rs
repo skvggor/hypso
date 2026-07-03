@@ -1,4 +1,4 @@
-//! hypso — procedural generator for 4K topographic-style wallpapers.
+//! Hypso: procedural generator for 4K topographic-style wallpapers.
 //!
 //! The library holds all logic and is what the tests cover; `main.rs` is thin
 //! Slint GUI glue. The single source of truth is the SVG produced by

@@ -1,7 +1,7 @@
 ## Why
 
 There is no quick way to produce clean, original 4K wallpapers in the topographic
-contour-map style — the look of fractal-noise iso-lines flowing across a flat
+contour-map style: the look of fractal-noise iso-lines flowing across a flat
 background, with room reserved for typography. Stock images are watermarked and
 not customizable, and AI generators are non-deterministic and heavy. A small
 native app that generates this style procedurally gives reproducible, fully
@@ -25,6 +25,10 @@ exportable PNG.
   into the text area.
 - **Effects**: gradient overlay and film grain, each with an intensity control.
 - **PNG-only export** at 4K, plus a live WYSIWYG preview and TOML presets.
+- **Editor UX**: flat custom widget set, collapsible sections, full color pickers
+  (labeled RGB sliders plus hex or `r, g, b` text entry), contextual help,
+  keyboard navigation with accessibility metadata, and a full-window export
+  overlay linking to the saved file.
 - Strict **TDD** (red → green → refactor) on the whole pure-function core, with
   determinism as a first-class tested property and library coverage ≥ 80%.
 
@@ -49,7 +53,7 @@ exportable PNG.
 
 ### Modified Capabilities
 
-<!-- None — greenfield project, no existing specs. -->
+<!-- None; greenfield project, no existing specs. -->
 
 ## Impact
 

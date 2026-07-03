@@ -44,8 +44,8 @@ pub fn rgb_to_text(red: u8, green: u8, blue: u8) -> String {
     format!("{red}, {green}, {blue}")
 }
 
-/// Parse user-typed color text — `#rrggbb`, `rrggbb`, `r, g, b`, or
-/// `rgb(r, g, b)` — into channels. Returns `None` when the text is not a color.
+/// Parse user-typed color text (`#rrggbb`, `rrggbb`, `r, g, b`, or
+/// `rgb(r, g, b)`) into channels. Returns `None` when the text is not a color.
 pub fn parse_color_text(text: &str) -> Option<(u8, u8, u8)> {
     let trimmed = text.trim();
     let hex = trimmed.strip_prefix('#').unwrap_or(trimmed);
