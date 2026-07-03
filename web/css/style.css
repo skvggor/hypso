@@ -13,7 +13,7 @@
   --bg: #0b0e12;
   --text: #f2efe9; /* on --bg ≈ 17:1 (AAA) */
   --dim: #9fb0b8; /* on --bg ≈ 8:1 (AAA) */
-  --faint: #5c6a73;
+  --faint: #8c979e; /* on --bg ≈ 5:1 (AA) */
   --accent: #7fd4e6; /* cyan ink; on --bg ≈ 10:1 */
   --rule: rgba(159, 176, 184, 0.22);
   --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
@@ -161,8 +161,7 @@ a {
   width: min(24rem, 68vw);
   padding: 1rem 1.15rem 1.1rem;
   border: 1px solid var(--rule);
-  background: color-mix(in srgb, var(--bg) 66%, transparent);
-  backdrop-filter: blur(4px);
+  background: #0d1117; /* opaque so text contrast is unambiguous over the field */
   font-size: 0.82rem;
 }
 
@@ -215,7 +214,7 @@ a {
   margin: 0 0 0.6rem;
   padding: 0.7rem 1rem;
   border: 1px solid var(--accent);
-  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  background: #16242b; /* opaque dark teal (≈ accent over bg) */
   color: var(--text);
   font: inherit;
   font-weight: 500;
@@ -231,16 +230,15 @@ a {
   background: var(--accent);
   color: var(--bg);
 }
-.legend__generate-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  line-height: 1;
+.legend__generate::before {
+  content: "◎"; /* concentric rings — a contour peak */
+  display: inline-block;
   font-size: 1.25em;
+  line-height: 1;
   transition: transform 0.25s ease;
 }
-.legend__generate:hover .legend__generate-icon,
-.legend__generate:active .legend__generate-icon {
+.legend__generate:hover::before,
+.legend__generate:active::before {
   transform: scale(1.2);
 }
 
@@ -265,11 +263,13 @@ a {
 .legend__source:hover {
   color: var(--accent);
 }
-.legend__source span {
+.legend__source::after {
+  content: "→";
   display: inline-block;
+  margin-left: 0.35rem;
   transition: transform 0.15s ease;
 }
-.legend__source:hover span {
+.legend__source:hover::after {
   transform: translateX(4px);
 }
 
@@ -280,6 +280,8 @@ a {
   left: 50%;
   transform: translateX(-50%);
   margin: 0;
+  padding: 0.2rem 0.7rem;
+  background: var(--bg); /* opaque backing over the field so the label stays legible */
   color: var(--faint);
   font-size: 0.68rem;
   letter-spacing: 0.16em;

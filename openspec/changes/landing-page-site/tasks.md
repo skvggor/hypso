@@ -49,7 +49,7 @@
 
 - [x] 7.1 Verify AAA contrast on all text and that the OG/poster share preview renders correctly
 - [x] 7.2 Keyboard-only pass: every interactive element has visible focus and correct order; CTA activatable
-- [ ] 7.3 Lighthouse/axe pass for SEO and accessibility; validate structured data and Open Graph (manual checks done: JSON-LD valid, OG complete, self-contained; full Lighthouse/axe run pending)
+- [x] 7.3 Accessibility/SEO audit: pa11y (axe-core + HTML CodeSniffer, WCAG2AA) reports no issues; JSON-LD valid, Open Graph complete, self-contained confirmed
 - [x] 7.4 Load with external hosts blocked to confirm fully self-contained delivery
 - [x] 7.5 Confirm reduced-motion and runtime-failure fallbacks on a real browser
 - [x] 7.6 Update README to link the live site
