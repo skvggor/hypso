@@ -1860,6 +1860,7 @@ dependencies = [
  "slint",
  "slint-build",
  "toml",
+ "wasm-bindgen",
  "winresource",
 ]
 

@@ -1,0 +1,321 @@
+/* A topographic map sheet. The field and the carved wordmark are the page;
+   everything else is thin cartographic margin. */
+
+@font-face {
+  font-family: "Montserrat";
+  font-style: normal;
+  font-weight: 900;
+  font-display: swap;
+  src: url("../assets/fonts/Montserrat-Black.ttf") format("truetype");
+}
+
+:root {
+  --bg: #0b0e12;
+  --text: #f2efe9; /* on --bg ≈ 17:1 (AAA) */
+  --dim: #9fb0b8; /* on --bg ≈ 8:1 (AAA) */
+  --faint: #8c979e; /* on --bg ≈ 5:1 (AA) */
+  --accent: #7fd4e6; /* cyan ink; on --bg ≈ 10:1 */
+  --rule: rgba(159, 176, 184, 0.22);
+  --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  --margin: clamp(1.1rem, 3.4vw, 2.75rem);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100svh;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--mono);
+  line-height: 1.55;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.skip-link {
+  position: fixed;
+  top: 0.5rem;
+  left: 0.5rem;
+  z-index: 100;
+  padding: 0.55rem 0.9rem;
+  background: var(--text);
+  color: var(--bg);
+  font-weight: 700;
+  transform: translateY(-160%);
+  transition: transform 0.18s ease;
+}
+.skip-link:focus {
+  transform: translateY(0);
+}
+
+/* ---- The sheet: living field + fallbacks ---- */
+#field,
+.poster,
+.grain {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+}
+
+#field {
+  display: block;
+}
+
+.poster {
+  object-fit: cover;
+}
+.poster[hidden] {
+  display: none;
+}
+
+.grain {
+  z-index: 1;
+  opacity: 0.09;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  mix-blend-mode: soft-light;
+}
+
+/* ---- Registration marks (printed-sheet corners) ---- */
+.marks {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+.mark {
+  position: absolute;
+  width: 13px;
+  height: 13px;
+  opacity: 0.5;
+}
+.mark::before,
+.mark::after {
+  content: "";
+  position: absolute;
+  background: var(--dim);
+}
+.mark::before {
+  inset: 6px 0 auto 0;
+  height: 1px;
+}
+.mark::after {
+  inset: 0 auto 0 6px;
+  width: 1px;
+}
+.mark--tl {
+  top: var(--margin);
+  left: var(--margin);
+}
+.mark--tr {
+  top: var(--margin);
+  right: var(--margin);
+}
+.mark--bl {
+  bottom: var(--margin);
+  left: var(--margin);
+}
+.mark--br {
+  bottom: var(--margin);
+  right: var(--margin);
+}
+
+/* ---- Map margin: legend block ---- */
+.legend {
+  position: fixed;
+  z-index: 3;
+  top: var(--margin);
+  right: var(--margin);
+  width: min(24rem, 68vw);
+  padding: 1rem 1.15rem 1.1rem;
+  border: 1px solid var(--rule);
+  background: #0d1117; /* opaque so text contrast is unambiguous over the field */
+  font-size: 0.82rem;
+}
+
+.legend__caption {
+  margin: 0 0 0.75rem;
+  padding-bottom: 0.7rem;
+  border-bottom: 1px solid var(--rule);
+  color: var(--faint);
+  font-size: 0.7rem;
+  letter-spacing: 0.02em;
+}
+
+.legend__desc {
+  margin: 0 0 1rem;
+  color: var(--dim);
+  line-height: 1.6;
+}
+
+.legend__meta {
+  margin: 0 0 1.1rem;
+  display: grid;
+  gap: 0.35rem;
+}
+.legend__meta div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px dotted var(--rule);
+  padding-bottom: 0.3rem;
+}
+.legend__meta dt {
+  color: var(--faint);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.7rem;
+}
+.legend__meta dd {
+  margin: 0;
+  color: var(--accent);
+}
+
+/* Primary interaction: generate a new map. Clear, finger-sized, tappable. */
+.legend__generate {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  min-height: 3rem;
+  margin: 0 0 0.6rem;
+  padding: 0.7rem 1rem;
+  border: 1px solid var(--accent);
+  background: #16242b; /* opaque dark teal (≈ accent over bg) */
+  color: var(--text);
+  font: inherit;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+}
+.legend__generate:hover,
+.legend__generate:focus-visible {
+  background: var(--accent);
+  color: var(--bg);
+}
+.legend__generate::before {
+  content: "◎"; /* concentric rings — a contour peak */
+  display: inline-block;
+  font-size: 1.25em;
+  line-height: 1;
+  transition: transform 0.25s ease;
+}
+.legend__generate:hover::before,
+.legend__generate:active::before {
+  transform: scale(1.2);
+}
+
+.legend__hint {
+  margin: 0 0 1rem;
+  color: var(--faint);
+  font-size: 0.7rem;
+  line-height: 1.5;
+}
+.legend__hint kbd {
+  border: 1px solid var(--rule);
+  padding: 0.02em 0.4em;
+}
+
+.legend__source {
+  display: inline-block;
+  color: var(--text);
+  border-bottom: 1px solid var(--accent);
+  padding-bottom: 0.15rem;
+  transition: color 0.15s ease;
+}
+.legend__source:hover {
+  color: var(--accent);
+}
+.legend__source::after {
+  content: "→";
+  display: inline-block;
+  margin-left: 0.35rem;
+  transition: transform 0.15s ease;
+}
+.legend__source:hover::after {
+  transform: translateX(4px);
+}
+
+/* ---- Bottom-edge annotation ---- */
+.edge {
+  position: fixed;
+  z-index: 3;
+  left: 50%;
+  transform: translateX(-50%);
+  margin: 0;
+  padding: 0.2rem 0.7rem;
+  background: var(--bg); /* opaque backing over the field so the label stays legible */
+  color: var(--faint);
+  font-size: 0.68rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.edge--bottom {
+  bottom: calc(var(--margin) - 0.15rem);
+}
+
+@media (max-width: 40rem) {
+  .legend {
+    top: auto;
+    bottom: calc(var(--margin) + 1.6rem);
+    left: var(--margin);
+    right: var(--margin);
+    width: auto;
+  }
+  .edge--bottom {
+    left: var(--margin);
+    transform: none;
+  }
+}
+
+/* Reveal baseline: JS fades the legend in. Without JS it stays visible. */
+.js [data-reveal] {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .js [data-reveal] {
+    opacity: 1;
+  }
+  .skip-link {
+    transition: none;
+  }
+}

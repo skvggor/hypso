@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#0b0e12" />
+
+    <title>Hypso · procedural topographic wallpapers, reproducible by seed</title>
+    <meta
+      name="description"
+      content="Hypso grows 4K topographic-style wallpapers from a single number: fractal contour-map line art, fully procedural and reproducible by seed. Watch the map draw itself, then build it yourself."
+    />
+    <meta name="author" content="skvggor" />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://skvggor.github.io/hypso/" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Hypso" />
+    <meta property="og:url" content="https://skvggor.github.io/hypso/" />
+    <meta
+      property="og:title"
+      content="Hypso · procedural topographic wallpapers, reproducible by seed"
+    />
+    <meta
+      property="og:description"
+      content="4K topographic-style wallpapers grown from a single number. Fractal contour-map line art, fully procedural and reproducible by seed."
+    />
+    <meta property="og:image" content="https://skvggor.github.io/hypso/assets/img/og.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="The word Hypso carved into a dark topographic contour map rendered in cyan lines"
+    />
+    <meta property="og:locale" content="en_US" />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta
+      name="twitter:title"
+      content="Hypso · procedural topographic wallpapers, reproducible by seed"
+    />
+    <meta
+      name="twitter:description"
+      content="4K topographic-style wallpapers grown from a single number. Fully procedural, reproducible by seed."
+    />
+    <meta name="twitter:image" content="https://skvggor.github.io/hypso/assets/img/og.png" />
+    <meta
+      name="twitter:image:alt"
+      content="The word Hypso carved into a dark topographic contour map rendered in cyan lines"
+    />
+
+    <link rel="icon" href="./assets/icons/icon-32.png" sizes="32x32" type="image/png" />
+    <link rel="icon" href="./assets/icons/icon-192.png" sizes="192x192" type="image/png" />
+    <link rel="apple-touch-icon" href="./assets/icons/icon-180.png" />
+    <link rel="manifest" href="./site.webmanifest" />
+
+    <link rel="stylesheet" href="./css/style.css" />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "Hypso",
+        "applicationCategory": "DesignApplication",
+        "operatingSystem": "Linux, Windows",
+        "description": "Native generator for 4K topographic-style wallpapers: fractal contour-map line art, fully procedural and reproducible by seed.",
+        "url": "https://skvggor.github.io/hypso/",
+        "codeRepository": "https://github.com/skvggor/hypso",
+        "programmingLanguage": "Rust",
+        "license": "https://github.com/skvggor/hypso/blob/main/LICENSE",
+        "author": { "@type": "Person", "name": "skvggor" },
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+      }
+    </script>
+  </head>
+  <body>
+    <a class="skip-link" href="#source">Skip to source</a>
+
+    <!-- The map sheet. The engine plots contours here and carves the wordmark. -->
+    <canvas id="field" aria-hidden="true"></canvas>
+    <img id="poster" class="poster" src="./assets/img/poster.png" alt="" aria-hidden="true" hidden />
+    <div class="grain" aria-hidden="true"></div>
+
+    <!-- Real heading for assistive tech and no-JS; the canvas draws the visible one. -->
+    <h1 class="visually-hidden">Hypso — procedural topographic wallpapers, reproducible by seed</h1>
+
+    <!-- Registration marks, like a printed map sheet. -->
+    <div class="marks" aria-hidden="true">
+      <span class="mark mark--tl"></span>
+      <span class="mark mark--tr"></span>
+      <span class="mark mark--bl"></span>
+      <span class="mark mark--br"></span>
+    </div>
+
+    <!-- Map margin: legend + seed + source. No hero column, no buttons. -->
+    <aside class="legend" data-reveal>
+      <p class="legend__caption">Fig. 1 — a landscape folded into an integer</p>
+      <p class="legend__desc">
+        Procedural topographic wallpapers, plotted from fractal noise and
+        reproducible by seed. This sheet redraws itself.
+      </p>
+      <dl class="legend__meta">
+        <div><dt>seed</dt><dd id="seed">·</dd></div>
+        <div><dt>contours</dt><dd id="contours">·</dd></div>
+      </dl>
+      <button id="reseed" class="legend__generate" type="button">Generate a new map</button>
+      <p class="legend__hint" id="hint">Tap the map for another. Every plot is a new seed.</p>
+      <a id="source" class="legend__source" href="https://github.com/skvggor/hypso">
+        Read the source, build it yourself
+      </a>
+    </aside>
+
+    <p class="edge edge--bottom" aria-hidden="true">Rendered live · Rust → WebAssembly</p>
+
+    <script src="./js/vendor/gsap.min.js"></script>
+    <script src="./js/vendor/opentype.min.js"></script>
+    <script type="module" src="./js/main.js"></script>
+  </body>
+</html>
