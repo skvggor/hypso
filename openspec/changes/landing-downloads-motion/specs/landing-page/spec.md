@@ -26,18 +26,27 @@ actions.
 ### Requirement: Binary downloads
 
 The landing page SHALL offer to download the desktop binaries for Linux and
-Windows. The links SHALL point at the project's latest release and resolve to an
-actual downloadable asset once a release exists (falling back to the releases
-page otherwise). The downloads SHALL live in a distinct component that is
+Windows. When the component is opened it SHALL resolve each platform link to the
+matching asset of the project's latest release via the GitHub API (regardless of
+the asset's exact filename), falling back to the releases page if the request
+fails or no release exists — so the links never 404 and never depend on a fixed
+version in the markup. The downloads SHALL live in a distinct component that is
 **revealed by a user action** (a toggle), SHALL show a per-OS icon beside each
-label, and SHALL follow the colors currently rendered on the map. They SHALL be
+label, and SHALL follow the colors currently rendered on the map. On touch
+devices it SHALL note that the builds are desktop-only. It SHALL be
 keyboard-reachable with visible focus and meet AA contrast.
 
-#### Scenario: Download links resolve to release assets
+#### Scenario: Links resolve to the latest release's assets
 
-- **WHEN** a visitor activates a platform download link and a release exists
-- **THEN** the browser downloads the corresponding binary from the latest release
-- **AND** each supported platform (Linux, Windows) has its own link with an OS icon
+- **WHEN** a visitor opens the download component and a release exists
+- **THEN** each platform link points at the matching asset of the latest release,
+  whatever it is named, and downloads it on activation
+- **AND** if resolution fails, the links open the releases page instead of 404ing
+
+#### Scenario: Desktop-only note on mobile
+
+- **WHEN** the component is opened on a touch device
+- **THEN** it states that the binaries are desktop-only (Linux and Windows)
 
 #### Scenario: Revealed component tinted by the map
 

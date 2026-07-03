@@ -305,6 +305,20 @@ a {
 .downloads[hidden] {
   display: none;
 }
+.download__note {
+  display: none; /* desktop-only builds — only worth saying on touch devices */
+  margin: 0 0 0.4rem;
+  padding: 0.4rem 0.5rem;
+  color: var(--dim);
+  font-size: 0.74rem;
+  line-height: 1.5;
+  border-bottom: 1px dotted var(--rule);
+}
+@media (pointer: coarse) {
+  .download__note {
+    display: block;
+  }
+}
 .download {
   display: flex;
   align-items: center;

@@ -511,6 +511,35 @@ function bindMotion() {
   }
 }
 
+const RELEASES_API = 'https://api.github.com/repos/skvggor/hypso/releases/latest';
+let downloadsResolved = false;
+
+/** Point each platform link at the real asset of the latest release, whatever it
+ *  is named. Progressive enhancement: the links otherwise open the releases page,
+ *  so the page never depends on this request. */
+async function resolveDownloads() {
+  if (downloadsResolved) return;
+  downloadsResolved = true;
+  try {
+    const response = await fetch(RELEASES_API, { headers: { Accept: 'application/vnd.github+json' } });
+    if (!response.ok) return;
+    const assets = (await response.json()).assets || [];
+    const wire = (platform, test) => {
+      const asset = assets.find((item) => test(item.name));
+      const link = document.querySelector(`[data-platform="${platform}"]`);
+      if (asset && link) {
+        link.href = asset.browser_download_url;
+        link.setAttribute('download', '');
+      }
+    };
+    wire('linux-appimage', (name) => /\.AppImage$/i.test(name));
+    wire('linux-tarball', (name) => /linux.*\.tar\.gz$/i.test(name));
+    wire('windows', (name) => /\.zip$/i.test(name) && /win/i.test(name));
+  } catch (error) {
+    downloadsResolved = false; // let a later open retry
+  }
+}
+
 /** The download component is revealed on demand; it lives inside the legend, so
  *  interacting with it never plots a new map. */
 function bindDownloads() {
@@ -519,6 +548,7 @@ function bindDownloads() {
     const open = downloadsPanel.hidden;
     downloadsPanel.hidden = !open;
     downloadToggle.setAttribute('aria-expanded', String(open));
+    if (open) resolveDownloads();
   });
   window.addEventListener('keydown', (event) => {
     if (event.key === 'Escape' && !downloadsPanel.hidden) {
