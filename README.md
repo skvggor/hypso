@@ -57,8 +57,8 @@ cargo run --example gallery    # regenerate docs/samples
 cargo run --example logo       # regenerate the logo assets
 ```
 
-Specs live in `openspec/`; see `openspec/changes/topographic-wallpaper-generator/`
-for the proposal, design, and task list.
+Capability specs live in `openspec/specs/`. The original proposal, design and
+task list are archived in `openspec/changes/archive/`.
 
 ## Stack
 
