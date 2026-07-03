@@ -73,3 +73,32 @@ cargo run --example gallery    # regenerate docs/samples
   and a standalone Windows `.exe`. The AppImage `.desktop` `Categories` must use
   only freedesktop-registered values.
 ```
+
+## Cargo features
+
+The crate splits into three feature levels so the same core serves the desktop
+app and the browser:
+
+- **(no features)** — the pure generative core only (`noise`, `contour`,
+  `smooth`, `geom`, `svg`, `stroke`, `config`, `format`, `text_zone`, `util`,
+  `wasm`). Only `serde` is linked. This is what the WebAssembly build compiles.
+- **`render`** — adds rasterization + file I/O (`resvg`, `anyhow`, `dirs`,
+  `toml`): `raster`, `render`, `grain`, `export`, `preset`. Enough for the asset
+  examples; never pulls in Slint or X11.
+- **`gui`** (default) — the full desktop app on top of `render` (`slint`, `open`,
+  `fastrand`, `slint-build`). The `hypso` binary requires it.
+
+`src/wasm.rs` re-exposes the pure core to JS via `wasm-bindgen` (compiled only
+for `wasm32`); the pure `contour_buffer` builder is tested natively for
+determinism and parity with `contour`. Do **not** widen the wasm surface to pull
+in `render`.
+
+## Landing page (`web/` → `dist/`)
+
+`https://skvggor.github.io/hypso/` is a static site whose hero runs the real
+engine compiled to WASM. Sources in `web/`; `examples/site.rs` generates the OG
+image, poster, and icons with Hypso itself; `examples/build_site.rs` minifies
+`index.html` and copies the rest into `dist/`. `.github/workflows/deploy-site.yml`
+builds and deploys to Pages, scoped to site sources + the pure core (a GUI-only
+change does not redeploy). Generated assets (`web/wasm/`, `web/assets/img/`,
+`web/assets/icons/`, `dist/`) are gitignored and rebuilt in CI.

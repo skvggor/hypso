@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://skvggor.github.io/hypso/sitemap.xml

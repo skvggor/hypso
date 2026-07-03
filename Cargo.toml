@@ -11,29 +11,67 @@ readme = "README.md"
 [lib]
 name = "hypso"
 path = "src/lib.rs"
+# `cdylib` is the WebAssembly artifact for the landing-page hero; `rlib` keeps
+# the binary, tests, and examples linking against the native library.
+crate-type = ["cdylib", "rlib"]
 
 [[bin]]
 name = "hypso"
 path = "src/main.rs"
+required-features = ["gui"]
+
+[features]
+default = ["gui"]
+# `render`: rasterization + file I/O (resvg, no GUI). Enough for the asset
+# examples (`site`, `gallery`, `logo`) — and it never pulls in Slint or X11.
+render = ["dep:anyhow", "dep:dirs", "dep:resvg", "dep:toml"]
+# `gui`: the full desktop app on top of `render` (Slint + shell integration).
+gui = ["render", "dep:slint", "dep:open", "dep:fastrand", "dep:slint-build"]
+# Disabling both leaves only the pure generative core (noise → contour → smooth)
+# plus the `wasm` binding — what the browser build compiles.
 
 [dependencies]
-anyhow = "1.0.102"
-dirs = "6.0.0"
-fastrand = "2.4.1"
-open = "5.3.6"
-resvg = "0.47.0"
+anyhow = { version = "1.0.102", optional = true }
+dirs = { version = "6.0.0", optional = true }
+fastrand = { version = "2.4.1", optional = true }
+open = { version = "5.3.6", optional = true }
+resvg = { version = "0.47.0", optional = true }
 serde = { version = "1.0.228", features = ["derive"] }
-slint = { version = "1.16.1", features = ["renderer-software"] }
-toml = "1.1.2"
+slint = { version = "1.16.1", features = ["renderer-software"], optional = true }
+toml = { version = "1.1.2", optional = true }
 
+# Only pulled in when compiling to wasm32; the native build never sees it.
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen = "0.2"
+
+[[example]]
+name = "gallery"
+required-features = ["render"]
+
+[[example]]
+name = "logo"
+required-features = ["render"]
+
+[[example]]
+name = "site"
+required-features = ["render"]
+
+# Optional so the WebAssembly build (native off) skips compiling the Slint
+# toolchain and its asset-processing tree entirely.
 [build-dependencies]
-slint-build = "1.16.1"
+slint-build = { version = "1.16.1", optional = true }
 
 [profile.release]
 opt-level = 3
 lto = true
 codegen-units = 1
 strip = true
+
+# The pure geometry core compiles to a ~32 KB module (≈12 KB gzipped), so the
+# extra wasm-opt pass buys little — and the version wasm-pack bundles is too old
+# for the bulk-memory ops modern rustc emits. Skip it for a reproducible build.
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = false
 
 # Keep dev/CI builds fast by optimizing only the SVG → raster hot path, so the
 # live preview stays smooth without optimizing all dependencies.
