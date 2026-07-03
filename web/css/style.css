@@ -273,6 +273,98 @@ a {
   transform: translateX(4px);
 }
 
+/* ---- Downloads: a separate component, revealed on demand, tinted by the map.
+   `--ink` is set from the live palette by JS; it falls back to the accent. ---- */
+.legend__reveal {
+  display: inline-block;
+  margin-top: 1rem;
+  padding: 0 0 0.12rem;
+  border: 0;
+  border-bottom: 1px solid var(--ink, var(--accent));
+  background: none;
+  color: var(--ink, var(--accent));
+  font: inherit;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+.legend__reveal::after {
+  content: " ↓";
+}
+.legend__reveal[aria-expanded="true"]::after {
+  content: " ↑";
+}
+
+.downloads {
+  margin-top: 0.85rem;
+  display: grid;
+  gap: 0.15rem;
+  padding: 0.5rem;
+  border: 1px solid var(--ink, var(--accent));
+  background: rgba(127, 212, 230, 0.05);
+}
+.downloads[hidden] {
+  display: none;
+}
+.download__note {
+  display: none; /* desktop-only builds — only worth saying on touch devices */
+  margin: 0 0 0.4rem;
+  padding: 0.4rem 0.5rem;
+  color: var(--dim);
+  font-size: 0.74rem;
+  line-height: 1.5;
+  border-bottom: 1px dotted var(--rule);
+}
+@media (pointer: coarse) {
+  .download__note {
+    display: block;
+  }
+}
+.download {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.45rem 0.4rem;
+  color: var(--text);
+  transition: background 0.12s ease;
+}
+.download:hover,
+.download:focus-visible {
+  background: color-mix(in srgb, var(--ink, var(--accent)) 14%, transparent);
+}
+.download__icon {
+  width: 1.5rem;
+  height: 1.5rem;
+  flex: none;
+  color: var(--ink, var(--accent));
+}
+.download__os {
+  font-weight: 600;
+}
+.download__format {
+  margin-left: auto;
+  color: var(--faint);
+  font-size: 0.72rem;
+}
+.download--minor {
+  font-size: 0.82rem;
+}
+.download--minor .download__os {
+  color: var(--dim);
+  font-weight: 400;
+}
+.download--minor .download__icon {
+  width: 1.15rem;
+  height: 1.15rem;
+  opacity: 0.7;
+}
+.download--all {
+  color: var(--dim);
+  padding-left: 0.4rem;
+}
+.download--all:hover {
+  color: var(--ink, var(--accent));
+}
+
 /* ---- Bottom-edge annotation ---- */
 .edge {
   position: fixed;

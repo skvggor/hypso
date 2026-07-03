@@ -112,6 +112,40 @@
       <a id="source" class="legend__source" href="https://github.com/skvggor/hypso">
         Read the source, build it yourself
       </a>
+      <button id="download-toggle" class="legend__reveal" type="button" aria-expanded="false" aria-controls="downloads">
+        Or run it — download binaries
+      </button>
+      <div id="downloads" class="downloads" hidden>
+        <p class="download__note">Desktop builds only — Linux and Windows. Grab them on a computer.</p>
+        <a class="download" data-platform="linux-appimage" href="https://github.com/skvggor/hypso/releases/latest">
+          <svg class="download__icon" viewBox="0 0 32 32" aria-hidden="true">
+            <path fill="currentColor" d="M16 3c-3.3 0-5 2.6-5 5.8 0 1.2.3 2 .3 2.9 0 1.2-1.6 2.7-2.6 4.6-.9 1.7-2.2 4-2.2 5.6 0 1 .8 1.5 1.6 1 .2 1.1.4 2.4 1.6 3 1.3.7 3.2.6 3.6-.5.9.3 1.9.3 2.8 0 .4 1.1 2.3 1.2 3.6.5 1.2-.6 1.4-1.9 1.6-3 .8.5 1.6 0 1.6-1 0-1.6-1.3-3.9-2.2-5.6-1-1.9-2.6-3.4-2.6-4.6 0-.9.3-1.7.3-2.9C21 5.6 19.3 3 16 3Z"/>
+            <ellipse cx="16" cy="20" rx="3.1" ry="4.8" fill="#f2efe9"/>
+            <circle cx="13.7" cy="9" r="1.1" fill="#0d1117"/>
+            <circle cx="18.3" cy="9" r="1.1" fill="#0d1117"/>
+            <path fill="#f2b134" d="M14.7 10.6c.8.7 1.8.7 2.6 0l-1.3 1.7-1.3-1.7Z"/>
+            <path fill="#f2b134" d="M12.4 26.6 10.6 29.4l4-1-.3-2.3-1.9.5Zm7.2 0 1.8 2.8-4-1 .3-2.3 1.9.5Z"/>
+          </svg>
+          <span class="download__os">Linux</span>
+          <span class="download__format">AppImage · x86_64</span>
+        </a>
+        <a class="download" data-platform="windows" href="https://github.com/skvggor/hypso/releases/latest">
+          <svg class="download__icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path fill="currentColor" d="M3 5.4 10.6 4.3v7.2H3V5.4Zm8.6-1.3L21 2.8v8.7h-9.4V4.1ZM3 12.5h7.6v7.2L3 18.6v-6.1Zm8.6 0H21v8.7l-9.4-1.3v-7.4Z"/>
+          </svg>
+          <span class="download__os">Windows</span>
+          <span class="download__format">zip · x86_64</span>
+        </a>
+        <a class="download download--minor" data-platform="linux-tarball" href="https://github.com/skvggor/hypso/releases/latest">
+          <svg class="download__icon" viewBox="0 0 32 32" aria-hidden="true">
+            <path fill="currentColor" d="M16 3c-3.3 0-5 2.6-5 5.8 0 1.2.3 2 .3 2.9 0 1.2-1.6 2.7-2.6 4.6-.9 1.7-2.2 4-2.2 5.6 0 1 .8 1.5 1.6 1 .2 1.1.4 2.4 1.6 3 1.3.7 3.2.6 3.6-.5.9.3 1.9.3 2.8 0 .4 1.1 2.3 1.2 3.6.5 1.2-.6 1.4-1.9 1.6-3 .8.5 1.6 0 1.6-1 0-1.6-1.3-3.9-2.2-5.6-1-1.9-2.6-3.4-2.6-4.6 0-.9.3-1.7.3-2.9C21 5.6 19.3 3 16 3Z"/>
+            <ellipse cx="16" cy="20" rx="3.1" ry="4.8" fill="#f2efe9"/>
+          </svg>
+          <span class="download__os">Linux</span>
+          <span class="download__format">tarball</span>
+        </a>
+        <a class="download download--minor download--all" href="https://github.com/skvggor/hypso/releases">All releases →</a>
+      </div>
     </aside>
 
     <p class="edge edge--bottom" aria-hidden="true">Rendered live · Rust → WebAssembly</p>
