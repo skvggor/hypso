@@ -27,19 +27,27 @@ actions.
 
 The landing page SHALL offer to download the desktop binaries for Linux and
 Windows. The links SHALL point at the project's latest release and resolve to an
-actual downloadable asset (not a 404), and SHALL be styled as part of the page's
-cartographic design rather than a feature grid. They SHALL be keyboard-reachable
-with visible focus and meet AA contrast.
+actual downloadable asset once a release exists (falling back to the releases
+page otherwise). The downloads SHALL live in a distinct component that is
+**revealed by a user action** (a toggle), SHALL show a per-OS icon beside each
+label, and SHALL follow the colors currently rendered on the map. They SHALL be
+keyboard-reachable with visible focus and meet AA contrast.
 
 #### Scenario: Download links resolve to release assets
 
-- **WHEN** a visitor activates a platform download link
-- **THEN** the browser downloads (or navigates to) the corresponding binary from
-  the latest release
-- **AND** each supported platform (Linux, Windows) has its own link
+- **WHEN** a visitor activates a platform download link and a release exists
+- **THEN** the browser downloads the corresponding binary from the latest release
+- **AND** each supported platform (Linux, Windows) has its own link with an OS icon
 
-#### Scenario: Links integrate with the design
+#### Scenario: Revealed component tinted by the map
 
-- **WHEN** the download links are rendered
-- **THEN** they follow the page's legend/marginalia styling, keyboard focus, and
-  AA-contrast rules — not a separate feature/pricing block
+- **WHEN** the visitor toggles the download component open
+- **THEN** it appears as a distinct panel whose accents (border, icons) match the
+  current generation's ink, updating as the map re-inks
+
+#### Scenario: Component integrates with the design and a11y
+
+- **WHEN** the download component is rendered
+- **THEN** it follows the page's legend styling, is keyboard-reachable with
+  visible focus, closes on Escape, and meets AA contrast — not a feature/pricing
+  block

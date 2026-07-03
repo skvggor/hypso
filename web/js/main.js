@@ -30,6 +30,8 @@ const poster = document.getElementById('poster');
 const reseedButton = document.getElementById('reseed');
 const seedField = document.getElementById('seed');
 const contoursField = document.getElementById('contours');
+const downloadToggle = document.getElementById('download-toggle');
+const downloadsPanel = document.getElementById('downloads');
 
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const hasGsap = typeof window.gsap !== 'undefined';
@@ -149,6 +151,11 @@ function makeGradient() {
   gradient.addColorStop(1, palette.to);
 }
 
+/** Tint the download component with this generation's ink, so it follows the map. */
+function applyInk() {
+  if (state.palette) root.style.setProperty('--ink', state.palette.to);
+}
+
 function newGeneration(seed) {
   state.seed = seed;
   state.palette = randomPalette();
@@ -156,6 +163,7 @@ function newGeneration(seed) {
   state.lines = next.lines;
   state.total = next.total;
   if (ctx) makeGradient();
+  applyInk();
   updateLegend();
 }
 
@@ -503,6 +511,24 @@ function bindMotion() {
   }
 }
 
+/** The download component is revealed on demand; it lives inside the legend, so
+ *  interacting with it never plots a new map. */
+function bindDownloads() {
+  if (!downloadToggle || !downloadsPanel) return;
+  downloadToggle.addEventListener('click', () => {
+    const open = downloadsPanel.hidden;
+    downloadsPanel.hidden = !open;
+    downloadToggle.setAttribute('aria-expanded', String(open));
+  });
+  window.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && !downloadsPanel.hidden) {
+      downloadsPanel.hidden = true;
+      downloadToggle.setAttribute('aria-expanded', 'false');
+      downloadToggle.focus();
+    }
+  });
+}
+
 function bindReseed() {
   const trigger = () => {
     cancelDrift();
@@ -590,6 +616,7 @@ async function start() {
   bindPointer();
   bindMotion();
   bindReseed();
+  bindDownloads();
   requestAnimationFrame(frame);
 
   window.gsap.to(state, {

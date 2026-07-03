@@ -273,40 +273,82 @@ a {
   transform: translateX(4px);
 }
 
-/* ---- Downloads: marginalia, not a button grid ---- */
-.legend__downloads {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 0.35rem 0.85rem;
+/* ---- Downloads: a separate component, revealed on demand, tinted by the map.
+   `--ink` is set from the live palette by JS; it falls back to the accent. ---- */
+.legend__reveal {
+  display: inline-block;
   margin-top: 1rem;
-  padding-top: 0.9rem;
-  border-top: 1px solid var(--rule);
+  padding: 0 0 0.12rem;
+  border: 0;
+  border-bottom: 1px solid var(--ink, var(--accent));
+  background: none;
+  color: var(--ink, var(--accent));
+  font: inherit;
+  font-size: 0.82rem;
+  cursor: pointer;
 }
-.legend__downloads-label {
-  width: 100%;
-  color: var(--faint);
-  font-size: 0.7rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+.legend__reveal::after {
+  content: " ↓";
 }
-.legend__download {
+.legend__reveal[aria-expanded="true"]::after {
+  content: " ↑";
+}
+
+.downloads {
+  margin-top: 0.85rem;
+  display: grid;
+  gap: 0.15rem;
+  padding: 0.5rem;
+  border: 1px solid var(--ink, var(--accent));
+  background: rgba(127, 212, 230, 0.05);
+}
+.downloads[hidden] {
+  display: none;
+}
+.download {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.45rem 0.4rem;
   color: var(--text);
-  border-bottom: 1px solid var(--accent);
-  padding-bottom: 0.1rem;
-  transition: color 0.15s ease;
+  transition: background 0.12s ease;
 }
-.legend__download:hover {
-  color: var(--accent);
+.download:hover,
+.download:focus-visible {
+  background: color-mix(in srgb, var(--ink, var(--accent)) 14%, transparent);
 }
-.legend__download--minor {
-  color: var(--dim);
-  border-bottom-color: var(--rule);
-  font-size: 0.76rem;
+.download__icon {
+  width: 1.5rem;
+  height: 1.5rem;
+  flex: none;
+  color: var(--ink, var(--accent));
 }
-.legend__format {
+.download__os {
+  font-weight: 600;
+}
+.download__format {
+  margin-left: auto;
   color: var(--faint);
-  font-size: 0.72em;
+  font-size: 0.72rem;
+}
+.download--minor {
+  font-size: 0.82rem;
+}
+.download--minor .download__os {
+  color: var(--dim);
+  font-weight: 400;
+}
+.download--minor .download__icon {
+  width: 1.15rem;
+  height: 1.15rem;
+  opacity: 0.7;
+}
+.download--all {
+  color: var(--dim);
+  padding-left: 0.4rem;
+}
+.download--all:hover {
+  color: var(--ink, var(--accent));
 }
 
 /* ---- Bottom-edge annotation ---- */
