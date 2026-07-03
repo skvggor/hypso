@@ -63,7 +63,7 @@ wasm-pack build --target web --release --out-dir web/wasm --out-name hypso -- --
 # 2. generate the OG image, poster, and icons with Hypso's own engine
 cargo run --example site --no-default-features --features render
 # 3. assemble web/ into dist/ (served by Pages)
-cargo run --example build_site
+cargo run --example build_site --no-default-features
 ```
 
 ## Development

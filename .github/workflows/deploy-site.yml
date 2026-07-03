@@ -56,7 +56,7 @@ jobs:
         run: cargo run --release --example site --no-default-features --features render
 
       - name: Assemble dist/
-        run: cargo run --release --example build_site
+        run: cargo run --release --example build_site --no-default-features
 
       - uses: actions/configure-pages@v5
         with:
