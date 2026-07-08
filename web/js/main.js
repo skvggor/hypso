@@ -32,6 +32,13 @@ const seedField = document.getElementById('seed');
 const contoursField = document.getElementById('contours');
 const downloadToggle = document.getElementById('download-toggle');
 const downloadsPanel = document.getElementById('downloads');
+const downloadsClose = document.getElementById('downloads-close');
+const islandElement = document.getElementById('island');
+const islandPathElement = document.getElementById('island-path');
+const isletPathElement = document.getElementById('islet-path');
+const generatePathElement = document.getElementById('generate-path');
+const downloadsPathElement = document.getElementById('downloads-path');
+const followerElement = document.getElementById('follower');
 
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const hasGsap = typeof window.gsap !== 'undefined';
@@ -40,6 +47,8 @@ root.classList.add('js');
 
 const state = { lines: [], total: 0, reveal: 0, wordReveal: 0, seed: 0, palette: null };
 const pointer = { targetX: 0, targetY: 0, x: 0, y: 0 };
+const island = { radii: null, isletRadii: null };
+const follower = { targetX: 0, targetY: 0, x: 0, y: 0, active: false, shown: false };
 const word = { ready: false, size: 0, x: 0, y: 0, mask: null, outline: null };
 const maskCanvas = document.createElement('canvas');
 let ctx;
@@ -66,13 +75,14 @@ function margin() {
 }
 
 /** A fresh two-stop ink gradient each generation: a dim base fading to a bright
- *  hue, at a random angle — bright enough to stay legible on the dark sheet. */
+ *  hue, at a random angle. The light stop has a 70% lightness floor so dark text
+ *  on an ink surface meets AA contrast for any hue. */
 function randomPalette() {
   const hue = Math.random() * 360;
   const drift = hue + (Math.random() * 60 - 30);
   return {
     from: `hsl(${hue.toFixed(0)} ${(42 + Math.random() * 18).toFixed(0)}% ${(30 + Math.random() * 10).toFixed(0)}%)`,
-    to: `hsl(${drift.toFixed(0)} ${(62 + Math.random() * 16).toFixed(0)}% ${(62 + Math.random() * 10).toFixed(0)}%)`,
+    to: `hsl(${drift.toFixed(0)} ${(62 + Math.random() * 16).toFixed(0)}% ${(70 + Math.random() * 8).toFixed(0)}%)`,
     angle: Math.random() * Math.PI * 2,
   };
 }
@@ -129,6 +139,180 @@ function tagHuggingLines(lines) {
   }
 }
 
+// --- The island: a landmass grown by the engine ------------------------------
+// Its silhouette comes from a closed contour of the generated field, morphed
+// into a star-shaped blob whose radius never dips below BLOB_MIN_RADIUS — that
+// clamp is what guarantees the rectangular content safe zone always fits.
+
+const BLOB_POINTS = 64;
+const BLOB_MIN_RADIUS = 0.8;
+const BLOB_RX = 48; // viewBox half-extents (0..100 box)
+const BLOB_RY = 46;
+
+function mulberry32(seed) {
+  let a = seed >>> 0;
+  return function next() {
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/** Deterministic blob for a seed: also the fallback island when the field
+ *  offers no usable ring. `minRadius` bounds the safe zone; `wobble` sets how
+ *  irregular the coastline gets. */
+function fallbackRadii(seed, minRadius = BLOB_MIN_RADIUS, wobble = 0.4) {
+  const random = mulberry32(seed);
+  const harmonics = [];
+  for (let h = 2; h <= 5; h += 1) {
+    harmonics.push({ h, amplitude: (random() * wobble) / h, phase: random() * Math.PI * 2 });
+  }
+  const radii = new Array(BLOB_POINTS);
+  const base = (1 + minRadius) / 2 + 0.06;
+  for (let i = 0; i < BLOB_POINTS; i += 1) {
+    const angle = (i / BLOB_POINTS) * Math.PI * 2;
+    let radius = base;
+    for (const { h, amplitude, phase } of harmonics) {
+      radius += amplitude * Math.sin(h * angle + phase);
+    }
+    radii[i] = clamp(radius, minRadius, 1);
+  }
+  return radii;
+}
+
+/** Radial signature of the best closed contour in the plot, or null. */
+function contourRadii(lines) {
+  let best = null;
+  for (const line of lines) {
+    if (line.length < 24) continue;
+    const c = line.coordinates;
+    const dx = c[0] - c[(line.length - 1) * 2];
+    const dy = c[1] - c[(line.length - 1) * 2 + 1];
+    if (dx * dx + dy * dy > 0.0004) continue; // open polyline
+    let minX = 1;
+    let maxX = 0;
+    let minY = 1;
+    let maxY = 0;
+    for (let k = 0; k < line.length; k += 1) {
+      const x = c[k * 2];
+      const y = c[k * 2 + 1];
+      if (x < minX) minX = x;
+      if (x > maxX) maxX = x;
+      if (y < minY) minY = y;
+      if (y > maxY) maxY = y;
+    }
+    const width = maxX - minX;
+    const height = maxY - minY;
+    if (width < 0.06 || height < 0.06 || width > 0.5 || height > 0.5) continue;
+    const aspect = width / height;
+    if (aspect < 0.45 || aspect > 2.2) continue;
+    const area = width * height;
+    if (!best || area > best.area) {
+      best = { line, area, cx: (minX + maxX) / 2, cy: (minY + maxY) / 2, hw: width / 2, hh: height / 2 };
+    }
+  }
+  if (!best) return null;
+
+  const bins = new Array(BLOB_POINTS).fill(0);
+  const c = best.line.coordinates;
+  for (let k = 0; k < best.line.length; k += 1) {
+    const nx = (c[k * 2] - best.cx) / best.hw;
+    const ny = (c[k * 2 + 1] - best.cy) / best.hh;
+    const angle = Math.atan2(ny, nx);
+    const bin = (((Math.round((angle / (Math.PI * 2)) * BLOB_POINTS) % BLOB_POINTS) + BLOB_POINTS) % BLOB_POINTS);
+    const radius = Math.hypot(nx, ny);
+    if (radius > bins[bin]) bins[bin] = radius;
+  }
+
+  for (let pass = 0; pass < 3; pass += 1) {
+    for (let i = 0; i < BLOB_POINTS; i += 1) {
+      if (bins[i] !== 0) continue;
+      const before = bins[(i + BLOB_POINTS - 1) % BLOB_POINTS];
+      const after = bins[(i + 1) % BLOB_POINTS];
+      if (before || after) bins[i] = (before + after) / ((before ? 1 : 0) + (after ? 1 : 0));
+    }
+  }
+  let max = 0;
+  for (const value of bins) if (value > max) max = value;
+  if (!max) return null;
+  const radii = bins.map((value) => (value || max * 0.85) / max);
+  for (let pass = 0; pass < 2; pass += 1) {
+    const previous = radii.slice();
+    for (let i = 0; i < BLOB_POINTS; i += 1) {
+      radii[i] =
+        (previous[(i + BLOB_POINTS - 1) % BLOB_POINTS] + previous[i] * 2 + previous[(i + 1) % BLOB_POINTS]) / 4;
+    }
+  }
+  return radii.map((value) => clamp(value, BLOB_MIN_RADIUS, 1));
+}
+
+function blobPoint(radii, index, rx, ry) {
+  const radius = radii[index % radii.length];
+  const angle = ((index % radii.length) / radii.length) * Math.PI * 2;
+  return [50 + Math.cos(angle) * radius * rx, 50 + Math.sin(angle) * radius * ry];
+}
+
+/** A smooth closed path through the blob's midpoints (0..100 viewBox). */
+function radiiToPath(radii, rx = BLOB_RX, ry = BLOB_RY) {
+  const count = radii.length;
+  const mid = (i) => {
+    const a = blobPoint(radii, i, rx, ry);
+    const b = blobPoint(radii, i + 1, rx, ry);
+    return `${((a[0] + b[0]) / 2).toFixed(2)} ${((a[1] + b[1]) / 2).toFixed(2)}`;
+  };
+  let d = `M ${mid(count - 1)}`;
+  for (let i = 0; i < count; i += 1) {
+    const p = blobPoint(radii, i, rx, ry);
+    d += ` Q ${p[0].toFixed(2)} ${p[1].toFixed(2)} ${mid(i)}`;
+  }
+  return `${d} Z`;
+}
+
+/** Re-derive the island, islet, and generate-button silhouettes. */
+function updateIsland() {
+  if (!islandPathElement || !isletPathElement) return;
+  const fromField = state.lines.length ? contourRadii(state.lines) : null;
+  island.radii = fromField || fallbackRadii(state.seed);
+  island.isletRadii = fallbackRadii((state.seed ^ 0x9e3779b9) >>> 0, 0.72, 0.6);
+  islandPathElement.setAttribute('d', radiiToPath(island.radii));
+  isletPathElement.setAttribute('d', radiiToPath(island.isletRadii, 49, 44));
+  if (generatePathElement) {
+    generatePathElement.setAttribute('d', radiiToPath(fallbackRadii((state.seed ^ 0x51ed5eed) >>> 0, 0.78, 0.55), 49, 42));
+  }
+  // The downloads panel holds a dense list, so its blob is deliberately
+  // subtle: high radius floor, gentle wobble — organic edge, no deep coves.
+  if (downloadsPathElement) {
+    downloadsPathElement.setAttribute('d', radiiToPath(fallbackRadii((state.seed ^ 0x7a3d0a11) >>> 0, 0.955, 0.09), 49.5, 49));
+  }
+}
+
+/** Stamp one blob's on-screen shape into the relief mask. */
+function stampShape(mctx, mw, mh, element, radii, rx, ry) {
+  if (!radii || !element) return;
+  const rect = element.getBoundingClientRect();
+  if (!rect.width || !rect.height) return;
+  mctx.beginPath();
+  for (let i = 0; i <= BLOB_POINTS; i += 1) {
+    const [px, py] = blobPoint(radii, i, rx, ry);
+    const x = ((rect.left + (px / 100) * rect.width) / cssWidth) * mw;
+    const y = ((rect.top + (py / 100) * rect.height) / cssHeight) * mh;
+    if (i === 0) mctx.moveTo(x, y);
+    else mctx.lineTo(x, y);
+  }
+  mctx.closePath();
+  mctx.fillStyle = '#ffffff';
+  mctx.fill();
+}
+
+/** The island and islet both rise from the field, so the map's contours ring
+ *  them the same way they ring the wordmark. */
+function stampIsland(mctx, mw, mh) {
+  if (!cssWidth || !cssHeight) return;
+  stampShape(mctx, mw, mh, islandElement, island.radii, BLOB_RX, BLOB_RY);
+  stampShape(mctx, mw, mh, downloadToggle, island.isletRadii, 49, 44);
+}
+
 function updateLegend() {
   seedField.textContent =
     '0x' + (state.seed >>> 0).toString(16).toUpperCase().padStart(8, '0');
@@ -151,19 +335,28 @@ function makeGradient() {
   gradient.addColorStop(1, palette.to);
 }
 
-/** Tint the download component with this generation's ink, so it follows the map. */
-function applyInk() {
-  if (state.palette) root.style.setProperty('--ink', state.palette.to);
+/** Tint the ink surfaces with this generation's line color. On the automatic
+ *  drift the ink cross-fades slowly (registered @property transition); on an
+ *  explicit user action it switches immediately with the replot. */
+function applyInk(slow = false) {
+  if (!state.palette) return;
+  root.classList.toggle('ink-drift', Boolean(slow));
+  root.style.setProperty('--ink', state.palette.to);
 }
 
-function newGeneration(seed) {
+function newGeneration(seed, slow = false) {
   state.seed = seed;
   state.palette = randomPalette();
+  // First plot: derive the island silhouette from this seed's field, then
+  // stamp it into the relief mask and re-plot so the contours hug the island.
+  state.lines = linesFor(seed).lines;
+  updateIsland();
+  buildMask();
   const next = linesFor(seed);
   state.lines = next.lines;
   state.total = next.total;
   if (ctx) makeGradient();
-  applyInk();
+  applyInk(slow);
   updateLegend();
 }
 
@@ -190,7 +383,9 @@ function layoutWord() {
   const target = cssWidth < 40 * 16 ? cssWidth * 0.82 : Math.min(cssWidth * 0.62, cssHeight * 2);
   word.size = Math.min((target / unit) * 100, cssHeight * 0.46);
   word.x = margin();
-  word.y = cssWidth < 40 * 16 ? cssHeight * 0.5 : cssHeight - margin() - word.size * 0.28;
+  // On small viewports the island anchors in the lower half, so the wordmark
+  // sits in the upper third and stays unobstructed.
+  word.y = cssWidth < 40 * 16 ? cssHeight * 0.34 : cssHeight - margin() - word.size * 0.28;
 }
 
 // --- The relief mask: the wordmark rasterized into the field grid -------------
@@ -226,7 +421,7 @@ function blurMask(source, width, height, radius, passes) {
 
 function buildMask() {
   word.mask = null;
-  if (!otFont || !cssWidth || !cssHeight) return;
+  if ((!otFont && !island.radii) || !cssWidth || !cssHeight) return;
   const mw = FIELD.width;
   const mh = FIELD.height;
   maskCanvas.width = mw;
@@ -234,13 +429,16 @@ function buildMask() {
   const mctx = maskCanvas.getContext('2d');
   mctx.setTransform(1, 0, 0, 1, 0, 0);
   mctx.clearRect(0, 0, mw, mh);
-  mctx.save();
-  mctx.scale(mw / cssWidth, mh / cssHeight);
-  const path = otFont.getPath(WORD, word.x, word.y, word.size);
-  path.fill = '#ffffff';
-  path.stroke = null;
-  path.draw(mctx);
-  mctx.restore();
+  if (otFont) {
+    mctx.save();
+    mctx.scale(mw / cssWidth, mh / cssHeight);
+    const path = otFont.getPath(WORD, word.x, word.y, word.size);
+    path.fill = '#ffffff';
+    path.stroke = null;
+    path.draw(mctx);
+    mctx.restore();
+  }
+  stampIsland(mctx, mw, mh);
 
   const pixels = mctx.getImageData(0, 0, mw, mh).data;
   const raw = new Float32Array(mw * mh);
@@ -406,6 +604,11 @@ function frame() {
   if (Math.abs(pointer.targetX - pointer.x) > 0.1 || Math.abs(pointer.targetY - pointer.y) > 0.1) {
     dirty = true;
   }
+  if (follower.active && follower.shown) {
+    follower.x += (follower.targetX - follower.x) * 0.1;
+    follower.y += (follower.targetY - follower.y) * 0.1;
+    followerElement.style.transform = `translate3d(${follower.x.toFixed(1)}px, ${follower.y.toFixed(1)}px, 0)`;
+  }
   if (dirty) {
     draw();
     dirty = false;
@@ -415,7 +618,7 @@ function frame() {
 
 function scheduleDrift() {
   cancelDrift();
-  driftCall = window.gsap.delayedCall(DRIFT_SECONDS, () => transitionTo(randomSeed()));
+  driftCall = window.gsap.delayedCall(DRIFT_SECONDS, () => transitionTo(randomSeed(), true));
 }
 
 function cancelDrift() {
@@ -438,11 +641,11 @@ function fadeWordIn() {
 }
 
 /** Erase the current plot, then draw the next generation — new field, new ink. */
-function transitionTo(seed) {
+function transitionTo(seed, slow = false) {
   const timeline = window.gsap.timeline();
   timeline.to(state, { reveal: 0, duration: 0.55, ease: 'power2.in', onUpdate: markDirty });
   timeline.add(() => {
-    newGeneration(seed);
+    newGeneration(seed, slow);
     fadeWordIn();
   });
   timeline.to(state, { reveal: 1, duration: 1.9, ease: 'power2.out', onUpdate: markDirty });
@@ -452,7 +655,16 @@ function transitionTo(seed) {
 function revealLegend() {
   const items = document.querySelectorAll('[data-reveal]');
   window.gsap.set(items, { y: 10, opacity: 0 });
-  window.gsap.to(items, { y: 0, opacity: 1, duration: 1.1, ease: 'power3.out', delay: 0.5 });
+  // clearProps: a leftover transform would turn the islet wrap into a
+  // containing block and break the fixed-position downloads sheet.
+  window.gsap.to(items, {
+    y: 0,
+    opacity: 1,
+    duration: 1.1,
+    ease: 'power3.out',
+    delay: 0.5,
+    clearProps: 'transform',
+  });
 }
 
 function bindPointer() {
@@ -464,6 +676,32 @@ function bindPointer() {
     },
     { passive: true },
   );
+}
+
+/** Decorative cartographic follower: trails the native cursor with the same
+ *  inertia as the parallax. Never replaces the cursor, never reacts to hover.
+ *  Fine pointers only; reduced motion removes it entirely (CSS). */
+function bindFollower() {
+  if (!followerElement || reducedMotion || !window.matchMedia('(pointer: fine)').matches) return;
+  follower.active = true;
+  window.addEventListener(
+    'pointermove',
+    (event) => {
+      follower.targetX = event.clientX;
+      follower.targetY = event.clientY;
+      if (!follower.shown) {
+        follower.x = event.clientX;
+        follower.y = event.clientY;
+        follower.shown = true;
+      }
+      followerElement.style.opacity = '0.85';
+    },
+    { passive: true },
+  );
+  document.documentElement.addEventListener('mouseleave', () => {
+    follower.shown = false;
+    followerElement.style.opacity = '0';
+  });
 }
 
 // --- Device-orientation parallax (tilt), the lively input on mobile ---------
@@ -544,18 +782,22 @@ async function resolveDownloads() {
  *  interacting with it never plots a new map. */
 function bindDownloads() {
   if (!downloadToggle || !downloadsPanel) return;
+  const close = () => {
+    downloadsPanel.hidden = true;
+    downloadToggle.setAttribute('aria-expanded', 'false');
+    document.body.classList.remove('downloads-open');
+    downloadToggle.focus();
+  };
   downloadToggle.addEventListener('click', () => {
     const open = downloadsPanel.hidden;
     downloadsPanel.hidden = !open;
     downloadToggle.setAttribute('aria-expanded', String(open));
+    document.body.classList.toggle('downloads-open', open);
     if (open) resolveDownloads();
   });
+  if (downloadsClose) downloadsClose.addEventListener('click', close);
   window.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape' && !downloadsPanel.hidden) {
-      downloadsPanel.hidden = true;
-      downloadToggle.setAttribute('aria-expanded', 'false');
-      downloadToggle.focus();
-    }
+    if (event.key === 'Escape' && !downloadsPanel.hidden) close();
   });
 }
 
@@ -567,8 +809,9 @@ function bindReseed() {
 
   reseedButton.addEventListener('click', trigger);
 
+  // The island and islet never reseed — only the map surface (and Space) does.
   document.addEventListener('click', (event) => {
-    if (event.target.closest('a, button, .legend')) return;
+    if (event.target.closest('a, button, .island, .islet-wrap')) return;
     trigger();
   });
 
@@ -603,10 +846,13 @@ async function loadFont() {
   fadeWordIn(); // the wordmark's transparency resolves over a few seconds
 }
 
-/** Static poster in place of the live sheet — no animation, no layout shift. */
+/** Static poster in place of the live sheet — no animation, no layout shift.
+ *  The island still renders, with a deterministic static silhouette. */
 function fallback() {
   canvas.remove();
   poster.hidden = false;
+  state.seed = randomSeed();
+  updateIsland();
   document.querySelectorAll('[data-reveal]').forEach((element) => {
     element.style.opacity = '1';
   });
@@ -644,6 +890,7 @@ async function start() {
 
   revealLegend();
   bindPointer();
+  bindFollower();
   bindMotion();
   bindReseed();
   bindDownloads();
