@@ -9,7 +9,7 @@
     <title>Hypso · procedural topographic wallpapers, reproducible by seed</title>
     <meta
       name="description"
-      content="Hypso grows 4K topographic-style wallpapers from a single number: fractal contour-map line art, fully procedural and reproducible by seed. Watch the map draw itself, then build it yourself."
+      content="Hypso grows 4K topographic-style wallpapers: fractal contour-map line art, fully procedural and reproducible by seed. Watch the map draw itself, then build it yourself."
     />
     <meta name="author" content="skvggor" />
     <meta name="robots" content="index, follow" />
@@ -25,7 +25,7 @@
     />
     <meta
       property="og:description"
-      content="4K topographic-style wallpapers grown from a single number. Fractal contour-map line art, fully procedural and reproducible by seed."
+      content="4K topographic-style wallpapers. Fractal contour-map line art, fully procedural and reproducible by seed."
     />
     <meta property="og:image" content="https://skvggor.github.io/hypso/assets/img/og.png" />
     <meta property="og:image:type" content="image/png" />
@@ -45,7 +45,7 @@
     />
     <meta
       name="twitter:description"
-      content="4K topographic-style wallpapers grown from a single number. Fully procedural, reproducible by seed."
+      content="4K topographic-style wallpapers. Fully procedural, reproducible by seed."
     />
     <meta name="twitter:image" content="https://skvggor.github.io/hypso/assets/img/og.png" />
     <meta
@@ -96,26 +96,41 @@
       <span class="mark mark--br"></span>
     </div>
 
-    <!-- Map margin: legend + seed + source. No hero column, no buttons. -->
-    <aside class="legend" data-reveal>
-      <p class="legend__caption">Fig. 1 — a landscape folded into an integer</p>
-      <p class="legend__desc">
-        Procedural topographic wallpapers, plotted from fractal noise and
-        reproducible by seed. This sheet redraws itself.
-      </p>
-      <dl class="legend__meta">
-        <div><dt>seed</dt><dd id="seed">·</dd></div>
-        <div><dt>contours</dt><dd id="contours">·</dd></div>
-      </dl>
-      <button id="reseed" class="legend__generate" type="button">Generate a new map</button>
-      <p class="legend__hint" id="hint">Tap the map for another. Every plot is a new seed.</p>
-      <a id="source" class="legend__source" href="https://github.com/skvggor/hypso">
-        Read the source, build it yourself
-      </a>
-      <button id="download-toggle" class="legend__reveal" type="button" aria-expanded="false" aria-controls="downloads">
-        Or run it — download binaries
+    <!-- The island: a landmass grown by the engine, holding the page's content.
+         Its silhouette is re-plotted on every seed; the surface is the map's ink. -->
+    <aside class="island" id="island" data-reveal>
+      <svg class="island__shape" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+        <path id="island-path" d="" fill="var(--ink)" />
+      </svg>
+      <div class="island__content">
+        <p class="island__statement">
+          <span>Procedural</span> <span>topographic wallpapers,</span> <span>reproducible by seed.</span>
+        </p>
+        <p class="island__seed" id="seed" aria-label="current seed">·</p>
+        <p class="island__contours"><span id="contours">·</span> contours</p>
+        <button id="reseed" class="island__generate" type="button">
+          <svg class="island__generate-shape" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+            <path id="generate-path" d="" fill="var(--ink-text)" />
+          </svg>
+          <span class="island__generate-label">◎ Generate</span>
+        </button>
+        <p class="island__hint" id="hint">Tap the map for another. Every plot is a new seed.</p>
+      </div>
+    </aside>
+
+    <!-- The islet: a smaller landmass next door, revealing the desktop builds. -->
+    <div class="islet-wrap" data-reveal>
+      <button id="download-toggle" class="islet" type="button" aria-expanded="false" aria-controls="downloads">
+        <svg class="islet__shape" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+          <path id="islet-path" d="" fill="var(--ink)" />
+        </svg>
+        <span class="islet__label">↓ Downloads</span>
       </button>
       <div id="downloads" class="downloads" hidden>
+        <svg class="downloads__shape" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+          <path id="downloads-path" d="" fill="var(--ink)" />
+        </svg>
+        <button class="downloads__close" id="downloads-close" type="button">× close</button>
         <p class="download__note">Desktop builds only — Linux and Windows. Grab them on a computer.</p>
         <a class="download" data-platform="linux-appimage" href="https://github.com/skvggor/hypso/releases/latest">
           <svg class="download__icon" viewBox="0 0 32 32" aria-hidden="true">
@@ -146,7 +161,13 @@
         </a>
         <a class="download download--minor download--all" href="https://github.com/skvggor/hypso/releases">All releases →</a>
       </div>
-    </aside>
+    </div>
+
+    <a id="source" class="source" href="https://github.com/skvggor/hypso">
+      Read the source, build it yourself
+    </a>
+
+    <div class="follower" id="follower" aria-hidden="true"></div>
 
     <p class="edge edge--bottom" aria-hidden="true">Rendered live · Rust → WebAssembly</p>
 

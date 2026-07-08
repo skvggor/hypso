@@ -5,7 +5,7 @@
 <p align="center">Native desktop app that generates 4K topographic-style wallpapers:
 fractal contour-map line art, fully procedural and reproducible by seed.</p>
 
-<p align="center"><a href="https://skvggor.github.io/hypso/"><strong>Live site ↗</strong></a> — the generative core runs in your browser, compiled to WebAssembly.</p>
+<p align="center"><a href="https://skvggor.github.io/hypso/"><strong>Try it live in your browser ↗</strong></a></p>
 
 ## Gallery
 
@@ -49,11 +49,13 @@ Presets are stored as TOML in the platform config directory.
 
 The [live site](https://skvggor.github.io/hypso/) *is* the product: the same
 generative core, compiled to WebAssembly, runs in the visitor's browser. The
-wordmark is stamped into the elevation field so the map's own contour lines bend
-around and cling to the letters; every plot draws a new seed and ink. It links to
-the latest-release binaries for Linux and Windows, tilts with the device
-gyroscope on mobile, and is fully self-contained (no CDN) — falling back to a
-static poster when motion or WebAssembly is unavailable.
+wordmark is stamped into the elevation field, so the contour lines cling to the
+letters. The page's content lives on an island: an organic landmass re-plotted
+from the field on every seed, filled with the ink of the contour lines. It
+links to the latest-release binaries for Linux and Windows, tilts with the
+gyroscope on mobile, and follows the pointer with a cartographic cursor on
+desktop. Everything is self-contained, with no CDN, and falls back to a static
+poster when motion or WebAssembly is unavailable.
 
 Source lives in `web/`; the build is Rust end to end and deploys to GitHub Pages
 via `.github/workflows/deploy-site.yml`.

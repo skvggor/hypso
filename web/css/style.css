@@ -1,5 +1,6 @@
 /* A topographic map sheet. The field and the carved wordmark are the page;
-   everything else is thin cartographic margin. */
+   the content lives on an island — a landmass grown by the engine, filled
+   with the map's own ink and carrying dark text. */
 
 @font-face {
   font-family: "Montserrat";
@@ -9,15 +10,27 @@
   src: url("../assets/fonts/Montserrat-Black.ttf") format("truetype");
 }
 
+/* Registered so the ink can cross-fade on the automatic drift. */
+@property --ink {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #7fd4e6;
+}
+
 :root {
   --bg: #0b0e12;
   --text: #f2efe9; /* on --bg ≈ 17:1 (AAA) */
   --dim: #9fb0b8; /* on --bg ≈ 8:1 (AAA) */
   --faint: #8c979e; /* on --bg ≈ 5:1 (AA) */
-  --accent: #7fd4e6; /* cyan ink; on --bg ≈ 10:1 */
-  --rule: rgba(159, 176, 184, 0.22);
+  --ink: #7fd4e6; /* live: the exact color of the map's contour lines */
+  --ink-text: #0b0e12; /* fixed dark text on any ink surface */
   --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  --display: "Montserrat", var(--mono);
   --margin: clamp(1.1rem, 3.4vw, 2.75rem);
+}
+
+:root.ink-drift {
+  transition: --ink 2s ease;
 }
 
 * {
@@ -40,13 +53,18 @@ body {
 }
 
 a {
-  color: var(--accent);
+  color: var(--ink);
   text-decoration: none;
 }
 
 :focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--ink);
   outline-offset: 4px;
+}
+
+.island :focus-visible,
+.downloads :focus-visible {
+  outline-color: var(--ink-text);
 }
 
 .visually-hidden {
@@ -152,167 +170,252 @@ a {
   right: var(--margin);
 }
 
-/* ---- Map margin: legend block ---- */
-.legend {
+/* ---- The island ---- */
+.island {
   position: fixed;
   z-index: 3;
   top: var(--margin);
   right: var(--margin);
-  width: min(24rem, 68vw);
-  padding: 1rem 1.15rem 1.1rem;
-  border: 1px solid var(--rule);
-  background: #0d1117; /* opaque so text contrast is unambiguous over the field */
-  font-size: 0.82rem;
+  width: min(30rem, 46vw);
+  height: min(27rem, 66vh);
 }
 
-.legend__caption {
-  margin: 0 0 0.75rem;
-  padding-bottom: 0.7rem;
-  border-bottom: 1px solid var(--rule);
-  color: var(--faint);
-  font-size: 0.7rem;
+.island__shape {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* The safe zone: a rectangle guaranteed to sit inside any silhouette
+   (the shape's radius never dips below 80% of its half-extent). */
+.island__content {
+  position: absolute;
+  inset: 23% 21%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.45rem;
+  color: var(--ink-text);
+}
+
+.island__statement {
+  margin: 0;
+  font-family: var(--display);
+  font-weight: 900;
+  font-size: clamp(0.78rem, 1.15vw, 1rem);
+  line-height: 1.25;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.island__statement > span {
+  white-space: nowrap;
+}
+
+.island__seed {
+  margin: 0.15rem 0 0;
+  font-family: var(--display);
+  font-weight: 900;
+  font-size: clamp(1.1rem, 1.9vw, 1.6rem);
   letter-spacing: 0.02em;
 }
 
-.legend__desc {
-  margin: 0 0 1rem;
-  color: var(--dim);
-  line-height: 1.6;
-}
-
-.legend__meta {
-  margin: 0 0 1.1rem;
-  display: grid;
-  gap: 0.35rem;
-}
-.legend__meta div {
-  display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-  border-bottom: 1px dotted var(--rule);
-  padding-bottom: 0.3rem;
-}
-.legend__meta dt {
-  color: var(--faint);
+.island__contours {
+  margin: 0;
+  font-size: 0.7rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  font-size: 0.7rem;
+  opacity: 0.75;
+  text-wrap: balance;
 }
-.legend__meta dd {
-  margin: 0;
-  color: var(--accent);
+.island__contours > span {
+  white-space: nowrap;
 }
 
-/* Primary interaction: generate a new map. Clear, finger-sized, tappable. */
-.legend__generate {
+/* Primary interaction: a negative landmass — a dark blob carved into the
+   island, its own silhouette re-plotted per seed. Rings radiate on hover. */
+.island__generate {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  width: 100%;
-  min-height: 3rem;
-  margin: 0 0 0.6rem;
-  padding: 0.7rem 1rem;
-  border: 1px solid var(--accent);
-  background: #16242b; /* opaque dark teal (≈ accent over bg) */
-  color: var(--text);
+  width: min(13rem, 92%);
+  min-height: 3.1rem;
+  margin: 0.35rem 0 0;
+  padding: 0.7rem 1.2rem;
+  border: 0;
+  background: none;
+  color: var(--ink);
   font: inherit;
-  font-weight: 500;
+  font-size: 0.82rem;
+  font-weight: 700;
   line-height: 1;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
   cursor: pointer;
-  transition:
-    background 0.15s ease,
-    color 0.15s ease;
 }
-.legend__generate:hover,
-.legend__generate:focus-visible {
-  background: var(--accent);
-  color: var(--bg);
+.island__generate-shape {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transition: transform 0.2s ease;
 }
-.legend__generate::before {
-  content: "◎"; /* concentric rings — a contour peak */
+.island__generate:hover .island__generate-shape,
+.island__generate:focus-visible .island__generate-shape {
+  transform: scale(1.06);
+}
+.island__generate-label {
+  position: relative;
   display: inline-block;
-  font-size: 1.25em;
-  line-height: 1;
-  transition: transform 0.25s ease;
 }
-.legend__generate:hover::before,
-.legend__generate:active::before {
-  transform: scale(1.2);
+.island__generate-label::after {
+  content: "";
+  position: absolute;
+  left: 0.05em;
+  top: 50%;
+  width: 1.3em;
+  height: 1.3em;
+  margin-top: -0.65em;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  opacity: 0;
+  pointer-events: none;
+}
+.island__generate:hover .island__generate-label::after,
+.island__generate:active .island__generate-label::after {
+  animation: ring-radiate 1.1s ease-out infinite;
+}
+@keyframes ring-radiate {
+  from {
+    transform: scale(0.4);
+    opacity: 0.8;
+  }
+  to {
+    transform: scale(2.2);
+    opacity: 0;
+  }
 }
 
-.legend__hint {
-  margin: 0 0 1rem;
-  color: var(--faint);
-  font-size: 0.7rem;
-  line-height: 1.5;
+.island__hint {
+  margin: 0;
+  font-size: 0.62rem;
+  line-height: 1.4;
+  opacity: 0.7;
+  text-align: center;
+  text-wrap: pretty;
 }
-.legend__hint kbd {
-  border: 1px solid var(--rule);
+.island__hint kbd {
+  border: 1px solid currentColor;
   padding: 0.02em 0.4em;
 }
 
-.legend__source {
-  display: inline-block;
-  color: var(--text);
-  border-bottom: 1px solid var(--accent);
-  padding-bottom: 0.15rem;
-  transition: color 0.15s ease;
-}
-.legend__source:hover {
-  color: var(--accent);
-}
-.legend__source::after {
-  content: "→";
-  display: inline-block;
-  margin-left: 0.35rem;
-  transition: transform 0.15s ease;
-}
-.legend__source:hover::after {
-  transform: translateX(4px);
+/* ---- The islet: downloads ---- */
+.islet-wrap {
+  position: fixed;
+  z-index: 4;
+  right: calc(var(--margin) + 1rem);
+  top: calc(var(--margin) + min(24rem, 60vh) + 0.75rem);
 }
 
-/* ---- Downloads: a separate component, revealed on demand, tinted by the map.
-   `--ink` is set from the live palette by JS; it falls back to the accent. ---- */
-.legend__reveal {
-  display: inline-block;
-  margin-top: 1rem;
-  padding: 0 0 0.12rem;
+.islet {
+  position: relative;
+  width: 11rem;
+  height: 5.2rem;
+  padding: 0;
   border: 0;
-  border-bottom: 1px solid var(--ink, var(--accent));
   background: none;
-  color: var(--ink, var(--accent));
   font: inherit;
-  font-size: 0.82rem;
   cursor: pointer;
 }
-.legend__reveal::after {
-  content: " ↓";
+.islet__shape {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
 }
-.legend__reveal[aria-expanded="true"]::after {
-  content: " ↑";
+.islet__label {
+  position: relative;
+  color: var(--ink-text);
+  font-weight: 700;
+  font-size: 0.74rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .downloads {
-  margin-top: 0.85rem;
+  position: absolute;
+  top: calc(100% + 0.6rem);
+  right: 0;
+  width: 20rem;
   display: grid;
   gap: 0.15rem;
-  padding: 0.5rem;
-  border: 1px solid var(--ink, var(--accent));
-  background: rgba(127, 212, 230, 0.05);
+  padding: 1.9rem 2.5rem 2.3rem;
+  color: var(--ink-text);
 }
 .downloads[hidden] {
   display: none;
+}
+.downloads__shape {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* While the downloads panel is open, a single scrim veils everything behind
+   it uniformly — map, island, and margins recede together, no patchwork. */
+.downloads-open::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 5;
+  background: rgba(11, 14, 18, 0.66);
+  animation: scrim-in 0.25s ease;
+}
+@keyframes scrim-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+/* The wrap rises above the scrim so the open panel stays vivid; the islet
+   button itself fades so only the panel reads. */
+.downloads-open .islet-wrap {
+  z-index: 6;
+}
+.islet {
+  transition: opacity 0.25s ease;
+}
+.downloads-open .islet {
+  opacity: 0.25;
+}
+.downloads > :not(.downloads__shape) {
+  position: relative;
+}
+.downloads__close {
+  justify-self: end;
+  margin: 0.5rem 1.6rem 0.3rem 0;
+  padding: 0.15rem 0.35rem;
+  border: 0;
+  background: none;
+  color: var(--ink-text);
+  font: inherit;
+  font-size: 0.72rem;
+  cursor: pointer;
+  opacity: 0.75;
 }
 .download__note {
   display: none; /* desktop-only builds — only worth saying on touch devices */
   margin: 0 0 0.4rem;
   padding: 0.4rem 0.5rem;
-  color: var(--dim);
   font-size: 0.74rem;
   line-height: 1.5;
-  border-bottom: 1px dotted var(--rule);
+  border-bottom: 1px dotted currentColor;
 }
 @media (pointer: coarse) {
   .download__note {
@@ -323,33 +426,33 @@ a {
   display: flex;
   align-items: center;
   gap: 0.7rem;
-  padding: 0.45rem 0.4rem;
-  color: var(--text);
+  padding: 0.45rem 0.8rem;
+  border-radius: 999px;
+  color: var(--ink-text);
   transition: background 0.12s ease;
 }
 .download:hover,
 .download:focus-visible {
-  background: color-mix(in srgb, var(--ink, var(--accent)) 14%, transparent);
+  background: color-mix(in srgb, var(--ink-text) 14%, transparent);
 }
 .download__icon {
   width: 1.5rem;
   height: 1.5rem;
   flex: none;
-  color: var(--ink, var(--accent));
+  color: var(--ink-text);
 }
 .download__os {
-  font-weight: 600;
+  font-weight: 700;
 }
 .download__format {
   margin-left: auto;
-  color: var(--faint);
   font-size: 0.72rem;
+  opacity: 0.7;
 }
 .download--minor {
   font-size: 0.82rem;
 }
 .download--minor .download__os {
-  color: var(--dim);
   font-weight: 400;
 }
 .download--minor .download__icon {
@@ -358,14 +461,37 @@ a {
   opacity: 0.7;
 }
 .download--all {
-  color: var(--dim);
-  padding-left: 0.4rem;
-}
-.download--all:hover {
-  color: var(--ink, var(--accent));
+  justify-content: center;
+  padding-left: 0;
+  font-weight: 700;
+  opacity: 1;
 }
 
-/* ---- Bottom-edge annotation ---- */
+/* ---- Loose margin annotations ---- */
+.source {
+  position: fixed;
+  z-index: 3;
+  left: var(--margin);
+  top: var(--margin);
+  color: var(--text);
+  font-size: 0.78rem;
+  border-bottom: 1px solid var(--ink);
+  padding-bottom: 0.15rem;
+  transition: color 0.15s ease;
+}
+.source:hover {
+  color: var(--ink);
+}
+.source::after {
+  content: "→";
+  display: inline-block;
+  margin-left: 0.35rem;
+  transition: transform 0.15s ease;
+}
+.source:hover::after {
+  transform: translateX(4px);
+}
+
 .edge {
   position: fixed;
   z-index: 3;
@@ -384,21 +510,96 @@ a {
   bottom: calc(var(--margin) - 0.15rem);
 }
 
-@media (max-width: 40rem) {
-  .legend {
-    top: auto;
-    bottom: calc(var(--margin) + 1.6rem);
-    left: var(--margin);
-    right: var(--margin);
-    width: auto;
-  }
-  .edge--bottom {
-    left: var(--margin);
-    transform: none;
+/* ---- Cursor follower: decorative registration cross trailing the pointer ---- */
+.follower {
+  position: fixed;
+  z-index: 90;
+  top: 0;
+  left: 0;
+  width: 30px;
+  height: 30px;
+  margin: -15px 0 0 -15px;
+  border: 1.5px solid var(--ink);
+  border-radius: 50%;
+  opacity: 0;
+  pointer-events: none;
+  will-change: transform;
+}
+.follower::before,
+.follower::after {
+  content: "";
+  position: absolute;
+  background: var(--ink);
+}
+.follower::before {
+  inset: 12.75px 4px auto 4px;
+  height: 1.5px;
+}
+.follower::after {
+  inset: 4px auto 4px 12.75px;
+  width: 1.5px;
+}
+@media not (pointer: fine) {
+  .follower {
+    display: none;
   }
 }
 
-/* Reveal baseline: JS fades the legend in. Without JS it stays visible. */
+/* ---- Small viewports: map fills the screen, island anchors low ---- */
+@media (max-width: 40rem) {
+  .island {
+    top: auto;
+    bottom: calc(var(--margin) + 4.2rem);
+    left: calc(var(--margin) * 0.5);
+    right: calc(var(--margin) * 0.5);
+    width: auto;
+    height: min(29rem, 58vh);
+  }
+  .island__content {
+    inset: 24% 25%;
+    gap: 0.4rem;
+  }
+  .island__hint {
+    font-size: 0.6rem;
+  }
+  .islet-wrap {
+    top: auto;
+    right: var(--margin);
+    bottom: calc(var(--margin) + 0.2rem);
+  }
+  .islet {
+    width: 9.5rem;
+    height: 4.2rem;
+  }
+  /* The downloads become a bottom sheet; the wordmark sits in the upper half. */
+  .downloads {
+    position: fixed;
+    top: auto;
+    left: calc(var(--margin) * 0.5);
+    right: calc(var(--margin) * 0.5);
+    bottom: calc(var(--margin) * 0.5);
+    width: auto;
+    max-height: 48vh;
+    overflow-y: auto;
+    z-index: 6;
+    padding: 2.4rem 2.8rem;
+  }
+  .source {
+    top: auto;
+    bottom: calc(var(--margin) + 0.05rem);
+    left: var(--margin);
+    max-width: calc(100vw - 2 * var(--margin) - 8.5rem);
+    font-size: 0.7rem;
+    text-wrap: balance;
+    background: var(--bg);
+    padding: 0.2rem 0.4rem 0.3rem;
+  }
+  .edge--bottom {
+    display: none;
+  }
+}
+
+/* Reveal baseline: JS fades the island in. Without JS it stays visible. */
 .js [data-reveal] {
   opacity: 0;
 }
@@ -409,5 +610,18 @@ a {
   }
   .skip-link {
     transition: none;
+  }
+  :root.ink-drift {
+    transition: none;
+  }
+  .island__generate:hover .island__generate-label::after,
+  .island__generate:active .island__generate-label::after {
+    animation: none;
+  }
+  .island__generate-shape {
+    transition: none;
+  }
+  .follower {
+    display: none;
   }
 }
